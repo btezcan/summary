@@ -1,0 +1,86 @@
+/*
+ * Print styles for every page; the cheat sheet (.cs-cheatsheet) gets a denser
+ * layout. Starlight already hides the header, sidebars and pagination
+ * (print:hidden). A small script in astro.config.mjs switches to the light
+ * theme while printing, so dark-mode readers still get dark text on paper.
+ */
+@media print {
+	@page {
+		size: A4;
+		margin: 12mm;
+	}
+
+	/* Things that don't work on paper */
+	.expressive-code .copy,
+	.sl-anchor-link,
+	.cs-progress,
+	.cs-quiz,
+	.cs-predict button {
+		display: none !important;
+	}
+
+	/* Keep boxes and their headings together */
+	.cs-pair,
+	.cs-mistake,
+	.cs-note,
+	.cs-compare tr,
+	.expressive-code {
+		break-inside: avoid;
+	}
+
+	.sl-heading-wrapper {
+		break-after: avoid;
+	}
+
+	/* Side by side on paper too (the page is narrower than the
+	   container-query breakpoint) */
+	.cs-pair:not([data-stacked]) .cs-pair__grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-areas: 'cs-code py-code' 'cs-out py-out';
+	}
+
+	.cs-pair:not([data-stacked]) .cs-pair__code[data-lang='py'] {
+		margin-top: 0;
+	}
+
+	/* ---- Cheat sheet: dense two-column reference ---- */
+	.cs-cheatsheet {
+		font-size: 9pt;
+	}
+
+	.sl-markdown-content .cs-cheatsheet .sl-heading-wrapper.level-h2 {
+		margin-top: 0.5rem !important;
+		padding-top: 0.25rem;
+	}
+
+	.sl-markdown-content .cs-cheatsheet h2 {
+		font-size: 10.5pt;
+	}
+
+	.sl-markdown-content .cs-cheatsheet .cs-pair,
+	.sl-markdown-content .cs-cheatsheet .cs-compare {
+		margin-top: 0.25rem !important;
+	}
+
+	.cs-cheatsheet .cs-pair__grid {
+		gap: 0 0.5rem;
+	}
+
+	.cs-cheatsheet .expressive-code {
+		--ec-codeFontSize: 7pt !important;
+		--ec-codeLineHt: 1.4 !important;
+		--ec-uiFontSize: 7.5pt !important;
+		--ec-uiPadBlk: 0.15rem !important;
+		--ec-codePadBlk: 0.3rem !important;
+		--ec-codePadInl: 0.5rem !important;
+		--ec-frm-edTabBarBrdBtmCol: transparent;
+	}
+
+	.cs-cheatsheet .cs-compare :is(th, td, code) {
+		font-size: 8pt;
+	}
+
+	.cs-cheatsheet__screen-only {
+		display: none;
+	}
+}

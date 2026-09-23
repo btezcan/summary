@@ -29,6 +29,22 @@ export default defineConfig({
 			social: [{ icon: 'github', label: 'GitHub', href: `https://github.com/${REPO}` }],
 			editLink: { baseUrl: `https://github.com/${REPO}/edit/main/` },
 			lastUpdated: true,
+			head: [
+				{
+					// Print with the light theme (dark text on white paper), then restore.
+					tag: 'script',
+					content: `addEventListener('beforeprint', () => {
+	const r = document.documentElement;
+	r.dataset.themeBeforePrint = r.dataset.theme;
+	r.dataset.theme = 'light';
+});
+addEventListener('afterprint', () => {
+	const r = document.documentElement;
+	if (r.dataset.themeBeforePrint) r.dataset.theme = r.dataset.themeBeforePrint;
+	delete r.dataset.themeBeforePrint;
+});`,
+				},
+			],
 			tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
 			sidebar: [
 				...chapterGroups.map((group) => ({
@@ -53,6 +69,7 @@ export default defineConfig({
 				'@fontsource-variable/jetbrains-mono/wght.css',
 				'./src/styles/theme.css',
 				'./src/styles/components.css',
+				'./src/styles/print.css',
 			],
 		}),
 	],

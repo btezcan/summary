@@ -1,5 +1,82 @@
 ---
-title: "Cheat Sheet"
+title: Cheat Sheet
+description: The most-used C# and Python syntax on one page, side by side — every snippet compiled and run. Prints on about six A4 pages.
+tableOfContents: false
 ---
 
-This chapter is being written.
+import { Pair, Compare } from '~/components';
+
+<div class="cs-cheatsheet">
+
+<div class="cs-cheatsheet__screen-only">
+  C# on the left, Python on the right. Every snippet is a complete program that
+  this site compiled and ran; outputs are left out to keep it short. Print it
+  (Ctrl+P / ⌘P) for a paper copy of about six A4 pages.
+</div>
+
+## Variables and types
+
+<Pair id="cheat-sheet/variables" output={false} />
+
+## Strings
+
+<Pair id="cheat-sheet/strings" output={false} />
+
+## Conditions
+
+<Pair id="cheat-sheet/conditions" output={false} />
+
+## Loops
+
+<Pair id="cheat-sheet/loops" output={false} />
+
+## Methods and functions
+
+<Pair id="cheat-sheet/functions" output={false} />
+
+## Classes
+
+<Pair id="cheat-sheet/classes" output={false} />
+
+## Records and enums
+
+<Pair id="cheat-sheet/records" output={false} />
+
+## Collections
+
+<Pair id="cheat-sheet/collections" output={false} />
+
+## Querying collections
+
+<Pair id="cheat-sheet/querying" output={false} />
+
+## Null / None
+
+<Pair id="cheat-sheet/null" output={false} />
+
+## Exceptions
+
+<Pair id="cheat-sheet/exceptions" output={false} />
+
+## Files
+
+<Pair id="cheat-sheet/files" output={false} />
+
+## async / await
+
+<Pair id="cheat-sheet/async" output={false} />
+
+## Command line
+
+<Compare
+  headers={['Task', 'C# (.NET)', 'Python']}
+  rows={[
+    ['New project', '`dotnet new console -n App`', 'a folder with `main.py`; `python -m venv .venv`'],
+    ['Run', '`dotnet run`', '`python main.py`'],
+    ['Add a package', '`dotnet add package Name`', '`python -m pip install name`'],
+    ['Tests', '`dotnet test`', '`python -m pytest`'],
+    ['Type check', 'built into the compiler', '`python -m mypy main.py`'],
+  ]}
+/>
+
+</div>

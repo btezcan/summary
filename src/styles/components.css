@@ -857,7 +857,7 @@
 /* On narrow screens a comparison table becomes one card per row: the row label,
  * then each cell on its own line with its column name ("C#", "Python") above it.
  * Code keeps its shape instead of breaking in the middle of an identifier. */
-@media (max-width: 50rem) {
+@media screen and (max-width: 50rem) {
 	.cs-compare--table table,
 	.cs-compare--table tbody,
 	.cs-compare--table tr,

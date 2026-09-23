@@ -1,0 +1,4 @@
+Point { X = 1, Y = 2 }
+Point { X = 1, Y = 5 }
+True
+Tue 2
