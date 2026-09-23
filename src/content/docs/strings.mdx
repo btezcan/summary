@@ -118,11 +118,6 @@ A backslash starts an escape sequence in both languages: `\n` is a new line,
   ]}
 />
 
-<Pair id="strings/split-join">
-  Note which object owns `join`: C# calls the static `string.Join(separator,
-  parts)`, Python calls `join` on the separator: `" | ".join(parts)`.
-</Pair>
-
 ### Indexing and slicing
 
 Python's **slices** `s[start:end:step]` work on every sequence, and they never
@@ -176,6 +171,15 @@ The two languages take opposite defaults:
   compare** data, file names and commands with the invariant culture (C#) or
   without the locale (Python).
 </Note>
+
+## Examples
+
+### Reading a line of CSV
+
+<Pair id="strings/split-join">
+  Note which object owns `join`: C# calls the static `string.Join(separator,
+  parts)`, Python calls `join` on the separator: `" | ".join(parts)`.
+</Pair>
 
 ### Building strings in a loop
 

@@ -107,13 +107,6 @@ Python has no such operator. The common substitute, `a or b`, gives `b` whenever
   keeps and Python replaces. Chapter 11 covers `null` and `None` in depth.
 </Pair>
 
-### The conditional expression
-
-<Pair id="operators/conditional">
-  Same idea, different order: C# puts the condition first (`c ? a : b`), Python
-  in the middle (`a if c else b`).
-</Pair>
-
 ### Precedence
 
 Both languages follow the usual math rules: `*` before `+`, left to right for
@@ -164,6 +157,23 @@ The operators for "what type is this?" are covered properly with classes
 </Note>
 
 <Pair id="operators/bitwise" />
+
+## Examples
+
+### Computing an average
+
+<Pair id="operators/average">
+  The classic first bug in both languages: dividing two integers. C# needs a
+  cast before dividing; Python needs `/` instead of `//`. Casting the *result*
+  (`(double)(total / count)`) would be too late — the fraction is already gone.
+</Pair>
+
+### The conditional expression
+
+<Pair id="operators/conditional">
+  Same idea, different order: C# puts the condition first (`c ? a : b`), Python
+  in the middle (`a if c else b`).
+</Pair>
 
 ## Common Mistakes
 

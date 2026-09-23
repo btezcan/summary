@@ -204,8 +204,9 @@ where possible (answers hidden with `<details>` as a fallback), respect
 
 ## Workflow rules for Claude Code
 
-- Work one chapter at a time. After each chapter: build the site, run
-  `scripts/verify-samples`, and report what was added.
+- Work one chapter at a time. After each chapter: run `scripts/verify-samples`,
+  build the site, run `npm run check:display` (every sample must appear on its
+  page exactly as verified), and report what was added.
 - Use plan mode for structural changes; ask before adding dependencies (npm
   packages, NuGet packages, Python packages such as mypy or pytest).
 - Never mark a task done if the build or sample verification fails.

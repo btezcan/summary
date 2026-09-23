@@ -112,8 +112,7 @@ function stripRegionMarkers(code: string, lang: Lang): string {
 		.split('\n')
 		.filter((l) => !START.test(l) && !END.test(l))
 		.join('\n')
-		.replace(/\n{3,}/g, '\n\n')
-		.trim();
+		.trim(); // only marker lines are removed: the code is shown exactly as verified
 }
 
 function dedent(code: string): string {
