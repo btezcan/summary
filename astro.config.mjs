@@ -40,8 +40,15 @@ export default defineConfig({
 					items: extraPages.map((p) => ({ label: p.label, slug: p.slug })),
 				},
 			],
-			// Tasarım onaylandıktan sonra eklenecek: yazı tipleri, renkler, kod teması.
-			customCss: [],
+			// Kod bloklarının teması: ec.config.mjs
+			customCss: [
+				'@fontsource-variable/atkinson-hyperlegible-next/wght.css',
+				'@fontsource-variable/atkinson-hyperlegible-next/wght-italic.css',
+				'@fontsource-variable/source-serif-4/wght.css',
+				'@fontsource-variable/jetbrains-mono/wght.css',
+				'./src/styles/theme.css',
+				'./src/styles/components.css',
+			],
 		}),
 	],
 });

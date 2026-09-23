@@ -1,0 +1,631 @@
+/*
+ * Bileşen stilleri. Renkler yalnızca theme.css'teki --cs-* değişkenlerinden gelir.
+ * Renk hiçbir zaman tek işaret değildir: doğru/yanlış, çıktı/hata ayrımı ayrıca
+ * etiket, simge ve kenarlık biçimiyle (düz / kesik) gösterilir.
+ */
+
+.sl-markdown-content :is(.cs-sample, .cs-output, .cs-note, .cs-predict, .cs-mistake, .cs-quiz, .cs-compare, .cs-progress) {
+	margin-top: var(--cs-gap);
+}
+
+/* Bir kod bloğu ile çıktısı birbirine yapışık durur. */
+.cs-sample > * + *,
+.cs-predict__content > * + *,
+.cs-mistake__side > * + *,
+.cs-compare__item > * + * {
+	margin-top: 0.5rem;
+}
+
+.cs-sample > .expressive-code + .cs-output {
+	margin-top: 0.375rem;
+}
+
+/* Starlight, içerikteki ardışık öğelere üst boşluk ekler; bileşen içinde sıfırla. */
+.sl-markdown-content :is(.cs-sample, .cs-predict, .cs-mistake, .cs-quiz, .cs-compare, .cs-progress, .cs-note) :where(p, ul, ol, pre, figure, .expressive-code) {
+	margin-top: 0;
+}
+
+/* Izgara öğeleri yan yana hizalı başlamalı. */
+.sl-markdown-content :is(.cs-mistake__grid, .cs-compare__grid) > * {
+	margin-top: 0;
+}
+
+.sl-markdown-content :is(.cs-predict__explain, .cs-mistake__explain, .cs-note__body, .cs-quiz__feedback, .cs-quiz__explanation) > * + * {
+	margin-top: 0.5rem;
+}
+
+/* --- Output ------------------------------------------------------------------ */
+
+.cs-output {
+	--cs-output-accent: var(--cs-firuze);
+	--cs-output-tint: var(--cs-firuze-tint);
+	margin: 0;
+	border-left: 4px solid var(--cs-output-accent);
+	border-radius: 0 var(--cs-radius) var(--cs-radius) 0;
+	background: var(--cs-output-tint);
+	color: var(--cs-ink);
+}
+
+.cs-output[data-variant='warning'] {
+	--cs-output-accent: var(--cs-kum);
+	--cs-output-tint: var(--cs-kum-tint);
+}
+
+.cs-output:is([data-variant='compile-error'], [data-variant='exception']) {
+	--cs-output-accent: var(--cs-mercan);
+	--cs-output-tint: var(--cs-mercan-tint);
+	border-left-style: double;
+	border-left-width: 5px;
+}
+
+.cs-output__label {
+	padding: 0.5rem 1rem 0;
+	font-family: var(--__sl-font);
+	font-size: var(--sl-text-2xs);
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--cs-output-accent);
+}
+
+.cs-output__input {
+	margin: 0.25rem 1rem 0;
+	font-size: var(--sl-text-sm);
+	color: var(--cs-muted);
+}
+
+.cs-output__input code {
+	font-family: var(--__sl-font-mono);
+	color: var(--cs-ink);
+}
+
+.cs-output__text {
+	margin: 0;
+	padding: 0.375rem 1rem 0.75rem;
+	overflow-x: auto;
+	background: transparent;
+	font-family: var(--__sl-font-mono);
+	font-size: 0.9rem;
+	line-height: 1.6;
+	white-space: pre;
+	color: var(--cs-ink);
+}
+
+/* Hata ve uyarı mesajları uzun tek satırlardır: dar sütunda kaydırmak yerine sar.
+ * Program çıktısı ise boşlukları anlamlı olabileceği için olduğu gibi kalır. */
+.cs-output:not([data-variant='output']) .cs-output__text {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.cs-output__text code {
+	all: unset;
+	font: inherit;
+	white-space: inherit;
+}
+
+/* --- Note -------------------------------------------------------------------- */
+
+.cs-note {
+	--cs-note-accent: var(--cs-firuze);
+	--cs-note-tint: var(--cs-firuze-tint);
+	padding: 0.75rem 1rem;
+	border-left: 4px solid var(--cs-note-accent);
+	border-radius: 0 var(--cs-radius) var(--cs-radius) 0;
+	background: var(--cs-note-tint);
+	color: var(--cs-ink);
+	max-width: calc(var(--cs-prose-width) + 2rem);
+}
+
+.cs-note[data-type='warning'] {
+	--cs-note-accent: var(--cs-mercan);
+	--cs-note-tint: var(--cs-mercan-tint);
+}
+
+.cs-note[data-type='version'] {
+	--cs-note-accent: var(--cs-kobalt);
+	--cs-note-tint: var(--cs-kobalt-tint);
+}
+
+.cs-note[data-type='history'] {
+	--cs-note-accent: var(--cs-kum);
+	--cs-note-tint: var(--cs-kum-tint);
+	border-left-style: dashed;
+}
+
+.cs-note__title {
+	font-weight: 700;
+	font-size: var(--sl-text-sm);
+	color: var(--cs-note-accent);
+}
+
+.cs-note[data-type='history'] .cs-note__title {
+	font-family: var(--cs-font-heading);
+	font-style: italic;
+	font-size: var(--sl-text-base);
+}
+
+.cs-note__body {
+	margin-top: 0.25rem;
+}
+
+/* --- Mistake ----------------------------------------------------------------- */
+
+.cs-mistake {
+	container-type: inline-size;
+}
+
+.cs-mistake__title {
+	font-family: var(--cs-font-heading);
+	font-weight: 600;
+	font-size: var(--sl-text-lg);
+	color: var(--cs-ink);
+	margin-bottom: 0.5rem;
+}
+
+.cs-mistake__grid {
+	display: grid;
+	gap: 1rem;
+}
+
+@container (min-width: 44rem) {
+	.cs-mistake__grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.cs-mistake__side {
+	min-width: 0;
+	padding-top: 0.5rem;
+	border-top: 3px solid var(--cs-firuze);
+}
+
+.cs-mistake__side[data-kind='wrong'] {
+	border-top-style: dashed;
+	border-top-color: var(--cs-mercan);
+}
+
+.cs-mistake__label {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-weight: 700;
+	font-size: var(--sl-text-sm);
+	color: var(--cs-firuze);
+}
+
+.cs-mistake__side[data-kind='wrong'] .cs-mistake__label {
+	color: var(--cs-mercan);
+}
+
+.cs-mistake__icon {
+	font-size: 1.1em;
+	line-height: 1;
+}
+
+.cs-mistake__explain {
+	margin-top: 0.75rem;
+	max-width: var(--cs-prose-width);
+}
+
+/* --- Predict ------------------------------------------------------------------ */
+
+.cs-predict {
+	padding: 1rem;
+	border: 1px solid var(--cs-line);
+	border-radius: var(--cs-radius);
+	background: var(--cs-paper-raised);
+}
+
+.cs-predict__question {
+	font-weight: 700;
+	color: var(--cs-ink);
+	margin-bottom: 0.5rem;
+}
+
+.cs-predict__answer {
+	margin-top: 0.75rem;
+}
+
+/* <summary> düğme gibi görünür; klavyeyle Enter/Space ile açılır. */
+.cs-predict__answer > summary,
+.cs-quiz__reveal > summary {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.35rem 0.85rem;
+	border: 1px solid var(--cs-kobalt);
+	border-radius: 999px;
+	color: var(--cs-kobalt);
+	font-weight: 700;
+	font-size: var(--sl-text-sm);
+	cursor: pointer;
+	list-style: none;
+	user-select: none;
+}
+
+/* Starlight'ın <details> çizgisini kaldır; ok simgesi Starlight'tan gelir. */
+.sl-markdown-content :is(.cs-predict__answer, .cs-quiz__reveal) {
+	border-inline-start: 0;
+	padding-inline-start: 0;
+}
+
+.sl-markdown-content :is(.cs-predict__answer, .cs-quiz__reveal) > summary {
+	margin-inline-start: 0;
+}
+
+.sl-markdown-content :is(.cs-predict__answer, .cs-quiz__reveal)[open] > summary {
+	margin-bottom: 0;
+}
+
+/* Starlight'ın maske simgesi küçük boyutta okunmuyor; düz bir üçgen kullan. */
+.sl-markdown-content :is(.cs-predict__answer, .cs-quiz__reveal) > summary::before {
+	content: '▸';
+	width: auto;
+	height: auto;
+	margin: 0;
+	background: none;
+	mask: none;
+	-webkit-mask: none;
+	transform: none;
+	vertical-align: baseline;
+}
+
+.sl-markdown-content :is(.cs-predict__answer, .cs-quiz__reveal)[open] > summary::before {
+	content: '▾';
+}
+
+.cs-predict__answer > summary:hover,
+.cs-quiz__reveal > summary:hover {
+	background: var(--cs-kobalt-tint);
+}
+
+.cs-predict__content,
+.cs-quiz__reveal .cs-quiz__explanation {
+	margin-top: 0.75rem;
+	animation: cs-reveal 180ms ease-out;
+}
+
+.cs-predict__explain {
+	max-width: var(--cs-prose-width);
+}
+
+@keyframes cs-reveal {
+	from {
+		opacity: 0;
+		transform: translateY(-0.25rem);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* --- Quiz ---------------------------------------------------------------------- */
+
+.cs-quiz__list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: grid;
+	/* minmax(0, …): uzun kod satırı ızgarayı ekrandan taşırmasın, kod bloğu kendi içinde kaysın. */
+	grid-template-columns: minmax(0, 1fr);
+	gap: 1rem;
+}
+
+.sl-markdown-content .cs-quiz__list > li + li {
+	margin-top: 0;
+}
+
+.cs-quiz__item {
+	min-width: 0;
+	padding: 1rem;
+	border: 1px solid var(--cs-line);
+	border-radius: var(--cs-radius);
+	background: var(--cs-paper-raised);
+}
+
+.cs-quiz__fieldset {
+	border: 0;
+	margin: 0;
+	padding: 0;
+	min-width: 0;
+}
+
+.cs-quiz__question {
+	padding: 0;
+	font-weight: 700;
+	color: var(--cs-ink);
+	margin-bottom: 0.75rem;
+}
+
+.cs-quiz__number {
+	color: var(--cs-muted);
+}
+
+.cs-quiz__fieldset > .expressive-code {
+	margin-bottom: 0.75rem;
+}
+
+.cs-quiz__options {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.sl-markdown-content .cs-quiz__options > * {
+	margin-top: 0;
+}
+
+.cs-quiz__option {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--cs-line);
+	border-radius: var(--cs-radius);
+	background: var(--cs-paper);
+	cursor: pointer;
+}
+
+.cs-quiz__option:hover {
+	border-color: var(--cs-line-strong);
+}
+
+.cs-quiz__option:has(input:checked) {
+	border-color: var(--cs-kobalt);
+	box-shadow: inset 0 0 0 1px var(--cs-kobalt);
+}
+
+.cs-quiz__option:has(input:focus-visible) {
+	outline: 2px solid var(--cs-kobalt);
+	outline-offset: 2px;
+}
+
+.cs-quiz__option input {
+	accent-color: var(--cs-kobalt);
+	margin: 0;
+	flex: none;
+}
+
+.cs-quiz__option input:focus-visible {
+	outline: none;
+}
+
+.cs-quiz__letter {
+	flex: none;
+	font-family: var(--__sl-font-mono);
+	font-weight: 700;
+	color: var(--cs-muted);
+}
+
+.cs-quiz__option:has(input:disabled) {
+	cursor: default;
+}
+
+.cs-quiz .cs-quiz__option[data-correct] {
+	border-color: var(--cs-firuze);
+	border-width: 2px;
+	background: var(--cs-firuze-tint);
+	box-shadow: none;
+}
+
+.cs-quiz .cs-quiz__option[data-wrong] {
+	border-color: var(--cs-mercan);
+	border-style: dashed;
+	border-width: 2px;
+	background: var(--cs-mercan-tint);
+	box-shadow: none;
+}
+
+.cs-quiz__option[data-correct]::after,
+.cs-quiz__option[data-wrong]::after {
+	margin-left: auto;
+	font-weight: 700;
+	font-size: var(--sl-text-sm);
+	white-space: nowrap;
+}
+
+.cs-quiz__option[data-correct]::after {
+	content: '✓ Doğru cevap';
+	color: var(--cs-firuze);
+}
+
+.cs-quiz__option[data-wrong]::after {
+	content: '✗ Seçiminiz';
+	color: var(--cs-mercan);
+}
+
+.cs-quiz__check,
+.cs-quiz__reset,
+.cs-progress__reset {
+	margin-top: 0.75rem;
+	padding: 0.4rem 1rem;
+	border: 1px solid var(--cs-kobalt);
+	border-radius: 999px;
+	background: var(--cs-kobalt);
+	color: var(--cs-on-accent);
+	font: inherit;
+	font-weight: 700;
+	font-size: var(--sl-text-sm);
+	cursor: pointer;
+}
+
+.cs-quiz__check:disabled {
+	background: transparent;
+	border-color: var(--cs-line-strong);
+	color: var(--cs-muted);
+	cursor: not-allowed;
+}
+
+.cs-quiz__check[hidden],
+.cs-quiz__reset[hidden],
+.cs-progress__reset[hidden] {
+	display: none;
+}
+
+.cs-quiz__reset,
+.cs-progress__reset {
+	background: transparent;
+	color: var(--cs-kobalt);
+}
+
+.cs-quiz__feedback {
+	margin-top: 0.75rem;
+	padding: 0.75rem 1rem;
+	border-left: 4px solid var(--cs-firuze);
+	background: var(--cs-firuze-tint);
+	border-radius: 0 var(--cs-radius) var(--cs-radius) 0;
+	color: var(--cs-ink);
+	animation: cs-reveal 180ms ease-out;
+}
+
+.cs-quiz__item[data-state='incorrect'] .cs-quiz__feedback {
+	border-left-color: var(--cs-mercan);
+	border-left-style: double;
+	border-left-width: 5px;
+	background: var(--cs-mercan-tint);
+}
+
+.cs-quiz__verdict {
+	font-weight: 700;
+	color: var(--cs-firuze);
+}
+
+.cs-quiz__item[data-state='incorrect'] .cs-quiz__verdict {
+	color: var(--cs-mercan);
+}
+
+.cs-quiz__reveal {
+	margin-top: 0.75rem;
+}
+
+.cs-quiz__footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 1rem;
+	margin-top: 1rem;
+}
+
+.cs-quiz__footer[hidden] {
+	display: none;
+}
+
+.cs-quiz__score {
+	font-family: var(--cs-font-heading);
+	font-size: var(--sl-text-xl);
+	font-weight: 600;
+	color: var(--cs-ink);
+}
+
+/* --- Compare ------------------------------------------------------------------ */
+
+.cs-compare--table {
+	overflow-x: auto;
+}
+
+.cs-compare--table table {
+	display: table;
+	width: 100%;
+	margin: 0;
+	border-collapse: collapse;
+}
+
+.cs-compare--table caption {
+	caption-side: top;
+	text-align: left;
+	padding-bottom: 0.5rem;
+	font-weight: 700;
+	color: var(--cs-ink);
+}
+
+.cs-compare--table tbody th {
+	font-weight: 700;
+	color: var(--cs-ink);
+	background: var(--cs-paper-raised);
+}
+
+.cs-compare--code {
+	margin-inline: 0;
+	container-type: inline-size;
+}
+
+.cs-compare__caption {
+	font-weight: 700;
+	color: var(--cs-ink);
+	margin-bottom: 0.5rem;
+}
+
+.cs-compare__grid {
+	display: grid;
+	gap: 1rem;
+}
+
+@container (min-width: 44rem) {
+	.cs-compare__grid {
+		grid-template-columns: repeat(var(--cs-compare-cols, 2), minmax(0, 1fr));
+	}
+}
+
+.cs-compare__item {
+	min-width: 0;
+}
+
+.cs-compare__title {
+	font-weight: 700;
+	font-size: var(--sl-text-sm);
+	color: var(--cs-ink);
+}
+
+/* --- Progress checklist ---------------------------------------------------------- */
+
+.cs-progress__summary {
+	font-family: var(--cs-font-heading);
+	font-size: var(--sl-text-lg);
+	font-weight: 600;
+	color: var(--cs-ink);
+}
+
+.cs-progress__list {
+	list-style: none;
+	padding: 0;
+	margin: 0.75rem 0 0;
+	columns: 17rem 2;
+	column-gap: 2rem;
+}
+
+.sl-markdown-content .cs-progress__list > li + li {
+	margin-top: 0;
+}
+
+.cs-progress__item {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.3rem 0;
+	break-inside: avoid;
+}
+
+.cs-progress__item input {
+	flex: none;
+	width: 1.1rem;
+	height: 1.1rem;
+	accent-color: var(--cs-kobalt);
+}
+
+.cs-progress__item:has(input:checked) a {
+	color: var(--cs-muted);
+	text-decoration-style: dotted;
+}
+
+.cs-progress__number {
+	font-family: var(--__sl-font-mono);
+	font-size: 0.85em;
+	color: var(--cs-muted);
+}
+
+.cs-progress__storage-note {
+	margin-top: 0.75rem;
+	font-size: var(--sl-text-sm);
+	color: var(--cs-mercan);
+}

@@ -1,0 +1,245 @@
+/*
+ * "Defter ve Çini" — site teması.
+ *
+ * Altı renk, her birinin tek bir anlamı var:
+ *   Kâğıt     arka plan
+ *   Mürekkep  metin
+ *   Kobalt    bağlantı, odak, etkin öğe, sürüm notu
+ *   Firuze    program çıktısı, "Doğru", ipucu, doğru cevap
+ *   Mercan    "Hatalı", hata mesajları, dikkat, yanlış cevap
+ *   Kum       ikincil metin, kenarlıklar, "eski kod" notu
+ *
+ * Tüm metin/arka plan çiftleri WCAG AA (≥ 4.5:1) ile kontrol edildi.
+ * Starlight koyu temayı :root'ta, açık temayı [data-theme='light'] altında tanımlar;
+ * burada da aynı düzen izlenir.
+ */
+
+:root {
+	/* Palet — koyu */
+	--cs-paper: #15181d;
+	--cs-paper-deep: #0f1216;
+	--cs-paper-raised: #1c1f25;
+	--cs-ink: #e8e4da;
+	--cs-text: #d4cfc4;
+	--cs-muted: #b3a78f;
+	--cs-line: #34373e;
+	--cs-line-strong: #7d7462;
+
+	--cs-kobalt: #8fb3f5;
+	--cs-firuze: #5ccbbe;
+	--cs-mercan: #f28b7f;
+	--cs-kum: #b3a78f;
+
+	--cs-kobalt-tint: #172238;
+	--cs-firuze-tint: #132522;
+	--cs-mercan-tint: #2b1c1c;
+	--cs-kum-tint: #221f1a;
+
+	--cs-on-accent: #15181d;
+
+	/* Starlight eşlemesi — koyu */
+	--sl-color-white: #f6f3ec;
+	--sl-color-gray-1: var(--cs-ink);
+	--sl-color-gray-2: var(--cs-text);
+	--sl-color-gray-3: var(--cs-muted);
+	--sl-color-gray-4: var(--cs-line-strong);
+	--sl-color-gray-5: var(--cs-line);
+	--sl-color-gray-6: var(--cs-paper-raised);
+	--sl-color-black: var(--cs-paper);
+
+	--sl-color-accent-low: #1b2a45;
+	--sl-color-accent: #5b87d6;
+	--sl-color-accent-high: var(--cs-kobalt);
+
+	--sl-color-bg-inline-code: var(--cs-paper-raised);
+
+	/* Yazı tipleri */
+	--sl-font: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
+	--sl-font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+	--cs-font-heading: 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif;
+
+	/* Ölçüler: kod sütunu ~84 karakter, düzyazı en fazla ~70 karakter */
+	--sl-content-width: 48rem;
+	--cs-prose-width: 70ch;
+	--sl-text-body: 1.0625rem;
+	--sl-line-height: 1.7;
+	--cs-radius: 0.375rem;
+	--cs-gap: 1.25rem;
+}
+
+:root[data-theme='light'] {
+	/* Palet — açık */
+	--cs-paper: #faf7f0;
+	--cs-paper-deep: #f0ebdf;
+	--cs-paper-raised: #f5f1e8;
+	--cs-ink: #1c2230;
+	--cs-text: #353a44;
+	--cs-muted: #6b604c;
+	--cs-line: #d9d2c3;
+	--cs-line-strong: #8c826e;
+
+	--cs-kobalt: #1e4fa3;
+	--cs-firuze: #0c6e67;
+	--cs-mercan: #ae3226;
+	--cs-kum: #6b604c;
+
+	--cs-kobalt-tint: #e3e9f4;
+	--cs-firuze-tint: #e4efea;
+	--cs-mercan-tint: #f6e4dd;
+	--cs-kum-tint: #efe9dc;
+
+	--cs-on-accent: #faf7f0;
+
+	/* Starlight eşlemesi — açık (Starlight'ta açık temada ölçek ters döner) */
+	--sl-color-white: var(--cs-ink);
+	--sl-color-gray-1: #262c38;
+	--sl-color-gray-2: var(--cs-text);
+	--sl-color-gray-3: var(--cs-muted);
+	--sl-color-gray-4: var(--cs-line-strong);
+	--sl-color-gray-5: var(--cs-line);
+	--sl-color-gray-6: #ede8dc;
+	--sl-color-gray-7: var(--cs-paper-raised);
+	--sl-color-black: var(--cs-paper);
+
+	--sl-color-accent-low: #dce4f3;
+	--sl-color-accent: var(--cs-kobalt);
+	--sl-color-accent-high: #163b7a;
+
+	--sl-color-bg-inline-code: var(--cs-paper-deep);
+}
+
+/* Starlight'ın kendi renk tonlarını paletle hizala (ör. :::tip kutuları). */
+:root,
+:root[data-theme='light'] {
+	--sl-color-green-high: var(--cs-firuze);
+	--sl-color-green-low: var(--cs-firuze-tint);
+	--sl-color-green: var(--cs-firuze);
+	--sl-color-red-high: var(--cs-mercan);
+	--sl-color-red-low: var(--cs-mercan-tint);
+	--sl-color-red: var(--cs-mercan);
+	--sl-color-orange-high: var(--cs-mercan);
+	--sl-color-orange-low: var(--cs-mercan-tint);
+	--sl-color-orange: var(--cs-mercan);
+	--sl-color-blue-high: var(--cs-kobalt);
+	--sl-color-blue-low: var(--cs-kobalt-tint);
+	--sl-color-blue: var(--cs-kobalt);
+	--sl-color-purple-high: var(--cs-kobalt);
+	--sl-color-purple-low: var(--cs-kobalt-tint);
+	--sl-color-purple: var(--cs-kobalt);
+}
+
+body {
+	background-color: var(--cs-paper);
+	color: var(--cs-text);
+}
+
+/* --- Tipografi --------------------------------------------------------------- */
+
+.sl-markdown-content :is(h1, h2, h3, h4, h5),
+h1#_top,
+.site-title {
+	font-family: var(--cs-font-heading);
+	font-weight: 600;
+	letter-spacing: -0.005em;
+	color: var(--cs-ink);
+}
+
+h1#_top {
+	font-weight: 650;
+}
+
+.sl-markdown-content .sl-heading-wrapper.level-h2 {
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--cs-line);
+}
+
+/* Starlight tema seçicisi 6.25em genişlikte; Türkçe "Otomatik" sığmıyor. */
+starlight-theme-select label {
+	--sl-select-width: 7.25em !important;
+}
+
+/* Düzyazı dar kalır; kod, tablo ve bileşenler sütunun tamamını kullanır. */
+.sl-markdown-content > :is(p, ul, ol, blockquote, dl) {
+	max-width: var(--cs-prose-width);
+}
+
+.sl-markdown-content a {
+	color: var(--cs-kobalt);
+	text-underline-offset: 0.18em;
+	text-decoration-thickness: 1px;
+}
+
+.sl-markdown-content a:hover {
+	text-decoration-thickness: 2px;
+}
+
+/* Satır içi kod */
+.sl-markdown-content :not(pre) > code,
+.cs-inline-code {
+	font-family: var(--__sl-font-mono);
+	font-size: 0.88em;
+	padding: 0.1em 0.35em;
+	border: 1px solid var(--cs-line);
+	border-radius: 0.25rem;
+	background: var(--sl-color-bg-inline-code);
+	color: var(--cs-ink);
+}
+
+/* Bağ harfleri kapalı: öğrenci ekranda gördüğü karakterleri yazmalı (=> değil ⇒). */
+code,
+kbd,
+pre,
+.expressive-code,
+.expressive-code * {
+	font-variant-ligatures: none;
+	font-feature-settings:
+		'calt' 0,
+		'liga' 0;
+}
+
+/* --- Odak ve hareket --------------------------------------------------------- */
+
+:focus-visible {
+	outline: 2px solid var(--cs-kobalt);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* --- Özet kutusu ------------------------------------------------------------
+ * Her sayfa "## Özet" ile başlar; hemen ardından gelen liste kenar notu gibi çerçevelenir. */
+.sl-markdown-content .sl-heading-wrapper:has(> #ozet) + ul {
+	padding: 1rem 1.25rem 1rem 2.25rem;
+	border: 1px solid var(--cs-line);
+	border-left: 4px solid var(--cs-kum);
+	border-radius: 0 var(--cs-radius) var(--cs-radius) 0;
+	background: var(--cs-paper-raised);
+}
+
+.sl-markdown-content .sl-heading-wrapper:has(> #ozet) + ul > li + li {
+	margin-top: 0.35rem;
+}
+
+/* --- Tablolar ----------------------------------------------------------------- */
+
+.sl-markdown-content table {
+	font-size: 0.95rem;
+}
+
+.sl-markdown-content :is(th, td) {
+	border-color: var(--cs-line);
+}
+
+.sl-markdown-content thead th {
+	background: var(--cs-paper-deep);
+	color: var(--cs-ink);
+}
