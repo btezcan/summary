@@ -1,33 +1,31 @@
 ---
-// Doğrulanmış bir örneği gösterir: kod + gerçek çıktı.
-// Kullanım: <Sample id="turler/deger-referans" />
-//           <Sample id="turler/tasma" region="checked" />
-//           <Sample id="siniflar/banka" file="BankAccount.cs" output={false} />
-import { Code } from '@astrojs/starlight/components';
-import Outputs from './Outputs.astro';
-import { getCode, getSample } from './lib/samples';
+// One verified sample in one language: code + real output.
+// Usage: <Sample id="types/overflow" lang="cs" />
+//        <Sample id="types/overflow" lang="py" region="big" />
+//        <Sample id="classes/bank" lang="cs" file="BankAccount.cs" output={false} />
+// To show C# and Python together, use <Pair> instead.
+import LangCode from './LangCode.astro';
+import type { Lang } from './lib/samples';
 
 interface Props {
-	/** samples/ altındaki klasör yolu, ör. "turler/deger-referans" */
+	/** Folder under samples/, e.g. "types/overflow" */
 	id: string;
-	/** Gösterilecek dosya (varsayılan Program.cs). */
+	lang: Lang;
+	/** File to show (default Program.cs / main.py). */
 	file?: string;
-	/** Yalnızca "// #region ad" bölgesini göster. */
+	/** Show only the "region name" … "endregion" part. */
 	region?: string;
-	/** Kod bloğu başlığı (varsayılan: dosya adı). */
+	/** Code frame title (default: "C# · Program.cs"). */
 	title?: string;
-	/** Çıktıyı göster (varsayılan: true). */
+	/** Show the output (default: true). */
 	output?: boolean;
-	/** Vurgulanacak satırlar, ör. "3" ya da "{2-4}" (Expressive Code sözdizimi). */
+	/** Lines to highlight, e.g. "3" or "{2-4}". */
 	mark?: string;
 }
 
-const { id, file = 'Program.cs', region, title, output = true, mark } = Astro.props;
-const sample = getSample(id);
-const code = getCode(id, file, region);
+const props = Astro.props;
 ---
 
-<div class="cs-sample">
-	<Code code={code} lang="csharp" title={title ?? file} meta={mark ? `mark=${mark}` : undefined} />
-	{output && <Outputs sample={sample} />}
+<div class="cs-sample" data-lang={props.lang}>
+	<LangCode {...props} />
 </div>

@@ -1,20 +1,26 @@
 #!/usr/bin/env node
-// Tüm C# örneklerini derler, çalıştırır ve çıktılarını kayıtlı dosyalarla
-// karşılaştırır. Sitedeki her "Çıktı" bloğu bu dosyalardan gelir.
+// Compiles and runs every C# and Python sample and compares the results with the
+// stored expected files. Every "Output" block on the site comes from these files.
 //
-// Kullanım:
-//   node scripts/verify-samples.mjs              hepsini doğrula
-//   node scripts/verify-samples.mjs --update     beklenen dosyaları yeniden yaz
-//   node scripts/verify-samples.mjs --filter turler   yalnızca yolu eşleşenler
-//   node scripts/verify-samples.mjs --jobs 2     paralel iş sayısı
+// Usage:
+//   node scripts/verify-samples.mjs                 verify everything
+//   node scripts/verify-samples.mjs --update        rewrite the expected files
+//   node scripts/verify-samples.mjs --filter types  only samples whose path matches
+//   node scripts/verify-samples.mjs --jobs 2        number of parallel jobs
 //
-// Bir örnek klasörü (samples/<bolum>/<ornek>/) şunları içerir:
-//   Program.cs            tek dosyalık uygulama (ya da bir .csproj ile proje)
-//   input.txt             (isteğe bağlı) standart girdiye verilecek metin
-//   sample.json           (isteğe bağlı) ayarlar, aşağıdaki OPTION_KEYS
-//   expected-output.txt   standart çıktı
-//   expected-error.txt    derleme hatası ya da yakalanmamış istisna başlığı
-//   expected-warnings.txt derleyici uyarıları (yoksa uyarı beklenmez)
+// Layout: samples/<chapter>/<example>/cs/ and samples/<chapter>/<example>/py/.
+// A sample folder contains:
+//   Program.cs | *.csproj   C# file-based app or project
+//   main.py (+ other .py)   Python script
+//   input.txt               (optional) text fed to standard input
+//   sample.json             (optional) settings, see OPTION_KEYS
+//   expected-output.txt     standard output
+//   expected-error.txt      compile error, uncaught exception or traceback
+//   expected-warnings.txt   compiler / interpreter warnings (absent = none allowed)
+//
+// Interpreters: C# needs the .NET 10+ SDK. Python needs 3.14 (target) and 3.12
+// (the oldest version taught). They are found via $PYTHON / $PYTHON_MIN, then
+// `uv python find`, then python3.14 / python3.12 on PATH.
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -25,17 +31,40 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SAMPLES_DIR = path.join(ROOT, 'samples');
 
+const MAX_LINE = 48; // so <Pair> fits side by side; "wide": true exempts a sample
+const PY_TARGET = '3.14';
+const PY_MIN = '3.12';
+
 const EXPECT_MODES = ['run', 'compile-error', 'exception', 'test'];
 const OPTION_KEYS = {
-	expect: 'string', // run | compile-error | exception | test (varsayılan: run)
-	culture: 'boolean', // true: ICU kültür verisi açık (örnek kültürü kodda belirtmeli)
-	langVersion: 'string', // C# 12'den yeni özellik kullanan örnekler için
-	buildOnly: 'boolean', // derle ama çalıştırma (ör. internet gerektiren örnek)
-	normalize: 'object', // [{ "pattern": "...", "replace": "..." }] değişken çıktı için
+	expect: 'string', // run | compile-error | exception | test (default: run)
+	culture: 'boolean', // true: locale data enabled; the sample must set its culture/locale in code
+	langVersion: 'string', // C#: a sample that uses a feature newer than C# 12
+	minPython: 'string', // Python: a sample that needs a version newer than 3.12
+	buildOnly: 'boolean', // compile but don't run (e.g. needs internet)
+	nondeterministic: 'boolean', // Python: output may differ between hash seeds (use with normalize)
+	normalize: 'object', // [{ "pattern": "...", "replace": "..." }] for variable output
+	wide: 'boolean', // lines may exceed MAX_LINE; <Pair> shows the sample stacked
 	timeoutMs: 'number',
 };
 
 const NOISE = [/^An issue was encountered verifying workloads\./, /^\s*$/];
+
+// Compiles every .py file without writing .pyc files. Prints SyntaxWarnings like the
+// interpreter does ("main.py:2: SyntaxWarning: ...") and a SyntaxError in the usual
+// "File ..., line N / caret / message" form, relative to the sample folder.
+const PY_COMPILE_CHECK = `
+import sys, traceback, warnings, pathlib
+warnings.simplefilter("always")
+ok = True
+for p in sorted(pathlib.Path(".").glob("*.py")):
+    try:
+        compile(p.read_text(encoding="utf-8"), p.name, "exec")
+    except SyntaxError as e:
+        ok = False
+        sys.stderr.write("".join(traceback.format_exception_only(e)))
+sys.exit(0 if ok else 1)
+`;
 
 // ---------------------------------------------------------------------------
 
@@ -47,28 +76,38 @@ const baseEnv = {
 	DOTNET_CLI_TELEMETRY_OPTOUT: '1',
 	DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1',
 	DOTNET_GENERATE_ASPNET_CERTIFICATE: 'false',
+	PYTHONUTF8: '1',
+	PYTHON_COLORS: '0',
+	PYTHONDONTWRITEBYTECODE: '1',
+	PYTHONIOENCODING: 'utf-8',
 };
 
-await checkDotnet();
 const samples = findSamples(SAMPLES_DIR).filter((s) => !args.filter || s.id.includes(args.filter));
 if (samples.length === 0) {
-	console.error(args.filter ? `"${args.filter}" ile eşleşen örnek yok.` : 'Hiç örnek bulunamadı.');
+	console.error(args.filter ? `No sample matches "${args.filter}".` : 'No samples found.');
 	process.exit(1);
 }
 
-console.log(`${samples.length} örnek doğrulanıyor (${args.jobs} paralel iş)${args.update ? ' — güncelleme modu' : ''}\n`);
+const tools = {};
+if (samples.some((s) => s.lang === 'cs')) await checkDotnet();
+if (samples.some((s) => s.lang === 'py')) {
+	tools.python = await findPython(PY_TARGET, 'PYTHON');
+	tools.pythonMin = await findPython(PY_MIN, 'PYTHON_MIN');
+}
+
+console.log(`Verifying ${samples.length} samples (${args.jobs} parallel jobs)${args.update ? ' — update mode' : ''}\n`);
 const started = Date.now();
 const results = await mapLimit(samples, args.jobs, verifySample);
 
 const failed = results.filter((r) => !r.ok);
 const updated = results.filter((r) => r.updated.length > 0);
 console.log(
-	`\n${results.length - failed.length}/${results.length} başarılı` +
-		(updated.length ? `, ${updated.length} örneğin dosyaları güncellendi` : '') +
-		` (${((Date.now() - started) / 1000).toFixed(1)} sn)`,
+	`\n${results.length - failed.length}/${results.length} passed` +
+		(updated.length ? `, files updated for ${updated.length} samples` : '') +
+		` (${((Date.now() - started) / 1000).toFixed(1)} s)`,
 );
 if (failed.length) {
-	console.log('\nBaşarısız örnekler:');
+	console.log('\nFailed samples:');
 	for (const r of failed) console.log(`  ✗ ${r.id}`);
 	process.exit(1);
 }
@@ -84,19 +123,27 @@ async function verifySample(sample) {
 
 	let opts;
 	try {
-		opts = readOptions(sample.dir);
+		opts = readOptions(sample);
 	} catch (e) {
 		fail(e.message);
 		return report(result);
 	}
+	if (!opts.wide) checkLineLength(sample, fail);
 
+	const ctx = { sample, opts, dir: sample.dir, result, fail };
+	await (sample.lang === 'cs' ? verifyCSharp(ctx) : verifyPython(ctx));
+	return report(result);
+}
+
+// --- C# -----------------------------------------------------------------------
+
+async function verifyCSharp({ sample, opts, dir, result, fail }) {
 	const env = { ...baseEnv };
 	if (!opts.culture) env.DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = '1';
 	const timeout = opts.timeoutMs ?? 60_000;
-	const dir = sample.dir;
 
-	// 1. Derle. --no-incremental şart: derleme önbellekten gelirse derleyici hiç
-	// çalışmaz ve uyarılar görünmez, bu da uyarı kontrolünü güvenilmez yapar.
+	// 1. Build. --no-incremental is essential: if the build comes from the cache the
+	// compiler never runs and no warnings are printed, which makes the warning check flaky.
 	const buildArgs = [
 		'build',
 		...(sample.kind === 'file' ? ['Program.cs'] : []),
@@ -108,74 +155,146 @@ async function verifySample(sample) {
 	];
 	if (opts.langVersion) buildArgs.push(`-p:LangVersion=${opts.langVersion}`);
 	const build = await run('dotnet', buildArgs, { cwd: dir, env, timeout: timeout * 3 });
-	const diagnostics = parseDiagnostics(build.stdout + '\n' + build.stderr, dir);
+	const diagnostics = parseCSharpDiagnostics(build.stdout + '\n' + build.stderr, dir);
 	const errors = diagnostics.filter((d) => d.includes(': error '));
 	const warnings = diagnostics.filter((d) => d.includes(': warning '));
 
 	if (opts.expect === 'compile-error') {
-		if (build.code === 0) {
-			fail('Derleme hatası bekleniyordu ama derleme başarılı oldu.');
-		} else if (errors.length === 0) {
-			fail('Derleme başarısız oldu ama C# hata satırı bulunamadı:\n' + indent(build.stdout + build.stderr));
-		} else {
-			compareFile(result, fail, dir, 'expected-error.txt', lines(errors));
-		}
+		if (build.code === 0) fail('Expected a compile error, but the build succeeded.');
+		else if (errors.length === 0) fail('The build failed without a C# error line:\n' + indent(build.stdout + build.stderr));
+		else compareFile(result, fail, dir, 'expected-error.txt', lines(errors));
 		compareFile(result, fail, dir, 'expected-warnings.txt', warnings.length ? lines(warnings) : null);
 		removeIfUpdating(result, dir, 'expected-output.txt');
-		return report(result);
+		return;
 	}
 
 	if (build.code !== 0) {
-		fail('Derleme başarısız:\n' + indent(errors.length ? lines(errors) : build.stdout + build.stderr));
-		return report(result);
+		fail('Build failed:\n' + indent(errors.length ? lines(errors) : build.stdout + build.stderr));
+		return;
 	}
 	compareFile(result, fail, dir, 'expected-warnings.txt', warnings.length ? lines(warnings) : null);
-	if (opts.buildOnly) return report(result);
+	if (opts.buildOnly) return;
 
-	// 2. Çalıştır
+	// 2. Run
 	if (opts.expect === 'test') {
 		const test = await run('dotnet', ['test', '--no-build', '-nologo'], { cwd: dir, env, timeout: timeout * 3 });
-		if (test.code !== 0) fail('Testler başarısız:\n' + indent(test.stdout + test.stderr));
-		return report(result);
+		if (test.code !== 0) fail('Tests failed:\n' + indent(test.stdout + test.stderr));
+		return;
 	}
 
-	const inputPath = path.join(dir, 'input.txt');
-	const input = fs.existsSync(inputPath) ? fs.readFileSync(inputPath, 'utf8') : '';
-	const runArgs =
-		sample.kind === 'file' ? ['run', '--no-build', '--file', 'Program.cs'] : ['run', '--no-build'];
-	const exec = await run('dotnet', runArgs, { cwd: dir, env, timeout, input });
-
-	if (exec.timedOut) {
-		fail(`Zaman aşımı (${timeout} ms). Program girdi mi bekliyor? input.txt ekleyin.`);
-		return report(result);
-	}
+	const runArgs = sample.kind === 'file' ? ['run', '--no-build', '--file', 'Program.cs'] : ['run', '--no-build'];
+	const exec = await run('dotnet', runArgs, { cwd: dir, env, timeout, input: readInput(dir) });
+	if (exec.timedOut) return fail(`Timed out (${timeout} ms). Is the program waiting for input? Add input.txt.`);
 
 	const stdout = applyNormalize(toLf(exec.stdout), opts.normalize);
 	const stderr = normalizePaths(toLf(exec.stderr), dir);
 
 	if (opts.expect === 'exception') {
-		const header = exceptionHeader(stderr);
+		const header = dotnetExceptionHeader(stderr);
 		if (exec.code === 0 || !header) {
-			fail('Yakalanmamış istisna bekleniyordu ama program normal bitti.' + (stderr ? '\n' + indent(stderr) : ''));
+			fail('Expected an uncaught exception, but the program finished normally.' + (stderr ? '\n' + indent(stderr) : ''));
 		} else {
 			compareFile(result, fail, dir, 'expected-error.txt', header + '\n');
 		}
 		compareFile(result, fail, dir, 'expected-output.txt', stdout);
-		return report(result);
+		return;
 	}
 
-	if (exec.code !== 0) {
-		fail(`Program ${exec.code} çıkış koduyla bitti:\n` + indent(stderr || stdout));
-		return report(result);
-	}
+	if (exec.code !== 0) return fail(`The program exited with code ${exec.code}:\n` + indent(stderr || stdout));
 	const extraStderr = stderr.split('\n').filter((l) => !NOISE.some((re) => re.test(l)));
-	if (extraStderr.length) fail('Beklenmeyen standart hata çıktısı:\n' + indent(extraStderr.join('\n')));
+	if (extraStderr.length) fail('Unexpected standard error output:\n' + indent(extraStderr.join('\n')));
 	compareFile(result, fail, dir, 'expected-output.txt', stdout);
 	removeIfUpdating(result, dir, 'expected-error.txt');
-	return report(result);
 }
 
-/** Beklenen dosyayla karşılaştırır; `actual === null` dosyanın olmaması gerektiği anlamına gelir. */
+// --- Python -------------------------------------------------------------------
+
+
+async function verifyPython({ opts, dir, result, fail }) {
+	const env = { ...baseEnv };
+	// Without an explicit locale, only samples that call locale.setlocale() see one.
+	if (!opts.culture) Object.assign(env, { LC_ALL: 'C.UTF-8', LANG: 'C.UTF-8' });
+	const timeout = opts.timeoutMs ?? 30_000;
+
+	// 1. Compile (the Python equivalent of the C# build step)
+	const compile = await run(tools.python.exe, ['-c', PY_COMPILE_CHECK], { cwd: dir, env, timeout });
+	const compileOut = normalizePaths(toLf(compile.stderr), dir).trimEnd();
+
+	if (opts.expect === 'compile-error') {
+		if (compile.code === 0) fail('Expected a SyntaxError, but the code compiled.');
+		else compareFile(result, fail, dir, 'expected-error.txt', compileOut + '\n');
+		removeIfUpdating(result, dir, 'expected-output.txt');
+		return;
+	}
+	if (compile.code !== 0) return fail('Compile failed:\n' + indent(compileOut));
+	const compileWarnings = compileOut ? compileOut.split('\n') : [];
+	if (opts.buildOnly) {
+		compareFile(result, fail, dir, 'expected-warnings.txt', compileWarnings.length ? lines(compileWarnings) : null);
+		return;
+	}
+	if (opts.expect === 'test') return fail('Python test samples are not supported yet (pytest needs approval).');
+
+	// 2. Run on the target version with two hash seeds, then on the oldest taught version.
+	// SyntaxWarnings were already collected in step 1; don't print them twice.
+	const input = readInput(dir);
+	const runPy = (exe, seed) =>
+		run(exe, ['-W', 'ignore::SyntaxWarning', 'main.py'], {
+			cwd: dir,
+			env: { ...env, PYTHONHASHSEED: String(seed) },
+			timeout,
+			input,
+		});
+
+	const main = await runPy(tools.python.exe, 0);
+	if (main.timedOut) return fail(`Timed out (${timeout} ms). Is the program waiting for input? Add input.txt.`);
+	const stdout = applyNormalize(normalizePaths(toLf(main.stdout), dir), opts.normalize);
+	const stderr = normalizePaths(toLf(main.stderr), dir);
+
+	if (opts.expect === 'exception') {
+		const tb = pythonTraceback(stderr);
+		if (main.code === 0 || !tb) {
+			fail('Expected an uncaught exception, but the program finished normally.' + (stderr ? '\n' + indent(stderr) : ''));
+		} else {
+			compareFile(result, fail, dir, 'expected-error.txt', tb + '\n');
+		}
+		compareFile(result, fail, dir, 'expected-warnings.txt', compileWarnings.length ? lines(compileWarnings) : null);
+		compareFile(result, fail, dir, 'expected-output.txt', stdout);
+	} else {
+		if (main.code !== 0) return fail(`The program exited with code ${main.code}:\n` + indent(stderr || stdout));
+		const runtimeWarnings = stderr.split('\n').filter((l) => l.trim());
+		const allWarnings = [...compileWarnings, ...runtimeWarnings];
+		compareFile(result, fail, dir, 'expected-warnings.txt', allWarnings.length ? lines(allWarnings) : null);
+		compareFile(result, fail, dir, 'expected-output.txt', stdout);
+		removeIfUpdating(result, dir, 'expected-error.txt');
+	}
+
+	// 3. Same output with a different hash seed: catches set/dict-of-set ordering that a
+	// student would not reproduce.
+	const reseeded = await runPy(tools.python.exe, 1);
+	const reseededOut = applyNormalize(normalizePaths(toLf(reseeded.stdout), dir), opts.normalize);
+	if (!opts.nondeterministic && reseededOut !== stdout) {
+		fail('Output changes with PYTHONHASHSEED (set or hash order?). Sort the output, or set "nondeterministic" + "normalize":\n' + diff(stdout, reseededOut));
+	}
+
+	// 4. The oldest taught version must run the sample the same way, unless it declares minPython.
+	if (opts.minPython && compareVersions(opts.minPython, PY_MIN) > 0) return;
+	const old = await runPy(tools.pythonMin.exe, 0);
+	const oldOut = applyNormalize(normalizePaths(toLf(old.stdout), dir), opts.normalize);
+	const oldErr = normalizePaths(toLf(old.stderr), dir);
+	const oldFailed = opts.expect === 'exception' ? !pythonTraceback(oldErr) : old.code !== 0;
+	if (oldFailed) {
+		fail(
+			`Fails on Python ${tools.pythonMin.version}. If it needs a newer version, set "minPython" in sample.json and add a version note on the page:\n` +
+				indent(oldErr || oldOut),
+		);
+	} else if (oldOut !== stdout) {
+		fail(`Output differs on Python ${tools.pythonMin.version}:\n` + diff(stdout, oldOut));
+	}
+}
+
+// --- Expected files -----------------------------------------------------------
+
+/** Compares with the expected file; `actual === null` means the file must not exist. */
 function compareFile(result, fail, dir, name, actual) {
 	const file = path.join(dir, name);
 	const exists = fs.existsSync(file);
@@ -188,28 +307,28 @@ function compareFile(result, fail, dir, name, actual) {
 		result.updated.push(name);
 		return;
 	}
-	if (actual === null) fail(`${name} var ama bu çıktı artık üretilmiyor.`);
-	else if (expected === null) fail(`${name} yok. Çıktıyı kontrol edip --update ile kaydedin:\n${indent(actual)}`);
-	else fail(`${name} farklı:\n${diff(expected, actual)}`);
+	if (actual === null) fail(`${name} exists, but this output is no longer produced.`);
+	else if (expected === null) fail(`${name} is missing. Check the output, then save it with --update:\n${indent(actual)}`);
+	else fail(`${name} differs:\n${diff(expected, actual)}`);
 }
 
 function removeIfUpdating(result, dir, name) {
 	const file = path.join(dir, name);
 	if (args.update && fs.existsSync(file)) {
 		fs.rmSync(file);
-		result.updated.push(`${name} (silindi)`);
+		result.updated.push(`${name} (removed)`);
 	}
 }
 
 function report(result) {
 	const mark = result.ok ? '✓' : '✗';
-	const upd = result.updated.length ? `  [güncellendi: ${result.updated.join(', ')}]` : '';
+	const upd = result.updated.length ? `  [updated: ${result.updated.join(', ')}]` : '';
 	console.log(`${mark} ${result.id}${upd}`);
 	for (const m of result.messages) console.log(indent(m));
 	return result;
 }
 
-// --- Örnekleri bulma ve ayarlar ---------------------------------------------
+// --- Discovery and options ----------------------------------------------------
 
 function findSamples(dir) {
 	const found = [];
@@ -218,15 +337,15 @@ function findSamples(dir) {
 		const names = entries.map((e) => e.name);
 		const csproj = names.find((n) => n.endsWith('.csproj'));
 		if (csproj || names.includes('Program.cs')) {
-			found.push({
-				id: path.relative(dir, d).split(path.sep).join('/'),
-				dir: d,
-				kind: csproj ? 'project' : 'file',
-			});
+			found.push({ id: rel(dir, d), dir: d, lang: 'cs', kind: csproj ? 'project' : 'file' });
+			return;
+		}
+		if (names.includes('main.py')) {
+			found.push({ id: rel(dir, d), dir: d, lang: 'py', kind: 'file' });
 			return;
 		}
 		for (const e of entries) {
-			if (e.isDirectory() && !['bin', 'obj', 'node_modules'].includes(e.name) && !e.name.startsWith('.')) {
+			if (e.isDirectory() && !['bin', 'obj', 'node_modules', '__pycache__'].includes(e.name) && !e.name.startsWith('.')) {
 				walk(path.join(d, e.name));
 			}
 		}
@@ -234,24 +353,50 @@ function findSamples(dir) {
 	return found.sort((a, b) => a.id.localeCompare(b.id, 'en'));
 }
 
-function readOptions(dir) {
-	const file = path.join(dir, 'sample.json');
+function rel(root, d) {
+	return path.relative(root, d).split(path.sep).join('/');
+}
+
+function readOptions(sample) {
+	const file = path.join(sample.dir, 'sample.json');
 	const opts = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
 	for (const [key, value] of Object.entries(opts)) {
-		if (!(key in OPTION_KEYS)) throw new Error(`sample.json: bilinmeyen ayar "${key}"`);
-		if (typeof value !== OPTION_KEYS[key]) throw new Error(`sample.json: "${key}" ${OPTION_KEYS[key]} olmalı`);
+		if (!(key in OPTION_KEYS)) throw new Error(`sample.json: unknown setting "${key}"`);
+		if (typeof value !== OPTION_KEYS[key]) throw new Error(`sample.json: "${key}" must be a ${OPTION_KEYS[key]}`);
 	}
 	opts.expect ??= 'run';
-	if (!EXPECT_MODES.includes(opts.expect)) {
-		throw new Error(`sample.json: "expect" şunlardan biri olmalı: ${EXPECT_MODES.join(', ')}`);
+	if (!EXPECT_MODES.includes(opts.expect)) throw new Error(`sample.json: "expect" must be one of: ${EXPECT_MODES.join(', ')}`);
+	if (sample.lang === 'cs' && (opts.minPython || opts.nondeterministic)) {
+		throw new Error('sample.json: "minPython" and "nondeterministic" are Python-only settings');
 	}
+	if (sample.lang === 'py' && opts.langVersion) throw new Error('sample.json: "langVersion" is a C#-only setting (use "minPython")');
 	return opts;
 }
 
-// --- Çıktı işleme ------------------------------------------------------------
+function checkLineLength(sample, fail) {
+	const ext = sample.lang === 'cs' ? '.cs' : '.py';
+	for (const name of fs.readdirSync(sample.dir).filter((n) => n.endsWith(ext)).sort()) {
+		const text = fs.readFileSync(path.join(sample.dir, name), 'utf8');
+		toLf(text)
+			.split('\n')
+			.forEach((line, i) => {
+				const length = [...line.replace(/\t/g, '    ')].length;
+				if (length > MAX_LINE) {
+					fail(`${name}:${i + 1} is ${length} characters (max ${MAX_LINE} so <Pair> fits). Shorten it or set "wide": true.`);
+				}
+			});
+	}
+}
 
-/** "…/Program.cs(2,19): error CS0165: … [proje.csproj]" → "Program.cs(2,19): error CS0165: …" */
-function parseDiagnostics(output, dir) {
+function readInput(dir) {
+	const p = path.join(dir, 'input.txt');
+	return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+}
+
+// --- Output processing --------------------------------------------------------
+
+/** "…/Program.cs(2,19): error CS0165: … [proj.csproj]" → "Program.cs(2,19): error CS0165: …" */
+function parseCSharpDiagnostics(output, dir) {
 	const seen = new Set();
 	for (const raw of normalizePaths(toLf(output), dir).split('\n')) {
 		const m = raw.trim().match(/^(.+?\(\d+,\d+\): (?:error|warning) [A-Z]+\d+: .*?)(?: \[[^\]]+\])?$/);
@@ -260,8 +405,8 @@ function parseDiagnostics(output, dir) {
 	return [...seen];
 }
 
-/** Yakalanmamış istisnanın başlığı: "Unhandled exception." satırından yığın izine kadar. */
-function exceptionHeader(stderr) {
+/** The uncaught .NET exception header: from "Unhandled exception." up to the stack trace. */
+function dotnetExceptionHeader(stderr) {
 	const all = stderr.split('\n');
 	const start = all.findIndex((l) => l.startsWith('Unhandled exception.'));
 	if (start < 0) return null;
@@ -271,6 +416,13 @@ function exceptionHeader(stderr) {
 		out.push(l);
 	}
 	return out.join('\n').trimEnd();
+}
+
+/** The Python traceback, from "Traceback (most recent call last):" to the end. */
+function pythonTraceback(stderr) {
+	const all = stderr.split('\n');
+	const start = all.findIndex((l) => l.startsWith('Traceback (most recent call last):'));
+	return start < 0 ? null : all.slice(start).join('\n').trimEnd();
 }
 
 function normalizePaths(text, dir) {
@@ -308,10 +460,20 @@ function diff(expected, actual) {
 			if (a[i] !== undefined) out.push(`    + ${JSON.stringify(a[i]).slice(1, -1)}`);
 		}
 	}
-	return '    (- beklenen, + gerçek)\n' + out.join('\n');
+	return '    (- expected, + actual)\n' + out.join('\n');
 }
 
-// --- Süreç yardımcıları -------------------------------------------------------
+function compareVersions(a, b) {
+	const pa = a.split('.').map(Number);
+	const pb = b.split('.').map(Number);
+	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+		const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+		if (d) return Math.sign(d);
+	}
+	return 0;
+}
+
+// --- Processes and tools ------------------------------------------------------
 
 function run(cmd, cmdArgs, { cwd, env, timeout, input = '' }) {
 	return new Promise((resolve) => {
@@ -333,7 +495,8 @@ function run(cmd, cmdArgs, { cwd, env, timeout, input = '' }) {
 			clearTimeout(timer);
 			resolve({ code, stdout, stderr, timedOut });
 		});
-		// Girdi yoksa stdin hemen kapanır: Console.ReadLine() null döner, program asılı kalmaz.
+		// Without input, stdin closes at once: Console.ReadLine() returns null and
+		// input() raises EOFError, so a program never hangs waiting for a user.
 		child.stdin.on('error', () => {});
 		child.stdin.end(input);
 	});
@@ -343,9 +506,33 @@ async function checkDotnet() {
 	const r = await run('dotnet', ['--version'], { cwd: ROOT, env: baseEnv, timeout: 30_000 });
 	const major = parseInt(r.stdout, 10);
 	if (r.code !== 0 || !(major >= 10)) {
-		console.error(`.NET 10 veya üstü SDK gerekli (bulunan: ${r.stdout.trim() || 'yok'}).`);
+		console.error(`The .NET 10 SDK or newer is required (found: ${r.stdout.trim() || 'none'}).`);
 		process.exit(1);
 	}
+}
+
+/** Finds a Python interpreter of exactly the given minor version. */
+async function findPython(version, envVar) {
+	const candidates = [];
+	if (process.env[envVar]) candidates.push(process.env[envVar]);
+	const uv = await run('uv', ['python', 'find', version], { cwd: ROOT, env: baseEnv, timeout: 30_000 });
+	if (uv.code === 0 && uv.stdout.trim()) candidates.push(uv.stdout.trim());
+	candidates.push(`python${version}`);
+
+	for (const exe of candidates) {
+		const r = await run(exe, ['-c', 'import sys; print("%d.%d.%d" % sys.version_info[:3])'], {
+			cwd: ROOT,
+			env: baseEnv,
+			timeout: 30_000,
+		});
+		const found = r.stdout.trim();
+		if (r.code === 0 && found.startsWith(version + '.')) return { exe, version: found };
+	}
+	console.error(
+		`Python ${version} is required for the Python samples. Install it with "uv python install ${version}" ` +
+			`or set $${envVar} to its path.`,
+	);
+	process.exit(1);
 }
 
 async function mapLimit(items, limit, fn) {
@@ -369,7 +556,7 @@ function parseArgs(argv) {
 		else if (a === '--filter') out.filter = argv[++i] ?? '';
 		else if (a === '--jobs') out.jobs = Math.max(1, parseInt(argv[++i], 10) || 1);
 		else {
-			console.error(`Bilinmeyen argüman: ${a}`);
+			console.error(`Unknown argument: ${a}`);
 			process.exit(2);
 		}
 	}

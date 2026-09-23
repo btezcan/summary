@@ -1,22 +1,23 @@
 ---
-// Çoktan seçmeli mini quiz. Sorular MDX içinde veri olarak yazılır:
+// Multiple-choice mini quiz. Questions are written as data in the MDX file:
 //
 //   <Quiz questions={[
 //     {
-//       question: '`5 / 2` ifadesinin değeri nedir?',
-//       options: ['2.5', '2', '3', 'Derleme hatası'],
-//       answer: 1,                       // doğru seçeneğin sırası (0'dan başlar)
-//       explanation: 'İki `int` bölününce sonuç da `int` olur; ondalık kısım atılır.',
-//       sample: 'turler/quiz-bolme',     // (isteğe bağlı) soruda gösterilecek doğrulanmış kod
+//       question: 'What is `7 / 2` in C#, and in Python?',
+//       options: ['`3` and `3.5`', '`3.5` and `3.5`', '`3` and `3`'],
+//       answer: 0,                        // index of the correct option (from 0)
+//       explanation: 'C# `/` on two ints truncates; Python `/` always gives a float.',
+//       sample: 'operators/division',     // (optional) verified code shown in the question
+//       lang: 'py',                       // required with sample
 //     },
 //   ]} />
 //
-// JavaScript yoksa her sorunun altında "Cevabı göster" (<details>) çalışır.
-// JavaScript varsa: seçenek seçilir → "Kontrol et" → anında geri bildirim ve açıklama,
-// tüm sorular bitince puan gösterilir.
+// Without JavaScript, "Show answer" (<details>) works under each question.
+// With JavaScript: choose an option → "Check" → instant feedback and explanation;
+// the score appears when every question is answered.
 import { Code } from '@astrojs/starlight/components';
 import { inline } from './lib/inline';
-import { getCode, getSample } from './lib/samples';
+import { codeTitle, getCode, getSample, LANGS, type Lang } from './lib/samples';
 
 interface Question {
 	question: string;
@@ -24,6 +25,7 @@ interface Question {
 	answer: number;
 	explanation: string;
 	sample?: string;
+	lang?: Lang;
 	region?: string;
 }
 
@@ -36,15 +38,16 @@ const { questions, title = 'Mini Quiz' } = Astro.props;
 const letters = 'ABCDEFGH';
 
 questions.forEach((q, i) => {
-	const where = `<Quiz> soru ${i + 1}`;
-	if (q.options.length < 2 || q.options.length > letters.length) throw new Error(`${where}: 2–8 seçenek olmalı.`);
+	const where = `<Quiz> question ${i + 1}`;
+	if (q.options.length < 2 || q.options.length > letters.length) throw new Error(`${where}: needs 2–8 options.`);
 	if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.options.length) {
-		throw new Error(`${where}: "answer" geçerli bir seçenek sırası değil (${q.answer}).`);
+		throw new Error(`${where}: "answer" is not a valid option index (${q.answer}).`);
 	}
-	if (q.sample) getSample(q.sample); // doğrulanmış olduğundan emin ol
+	if (q.sample && !q.lang) throw new Error(`${where}: "sample" needs "lang" ('cs' or 'py').`);
+	if (q.sample) getSample(q.sample, q.lang!); // make sure it is verified
 });
 
-// Aynı sayfada birden fazla quiz olabilir; radyo grubu adları çakışmamalı.
+// Several quizzes can share a page; radio group names must not clash.
 const uid = 'q' + Math.random().toString(36).slice(2, 8);
 ---
 
@@ -55,10 +58,16 @@ const uid = 'q' + Math.random().toString(36).slice(2, 8);
 				<li class="cs-quiz__item" data-answer={q.answer}>
 					<fieldset class="cs-quiz__fieldset">
 						<legend class="cs-quiz__question">
-							<span class="cs-quiz__number">Soru {i + 1}.</span>{' '}
+							<span class="cs-quiz__number">Question {i + 1}.</span>{' '}
 							<span set:html={inline(q.question)} />
 						</legend>
-						{q.sample && <Code code={getCode(q.sample, 'Program.cs', q.region)} lang="csharp" />}
+						{q.sample && q.lang && (
+							<Code
+								code={getCode(q.sample, q.lang, undefined, q.region)}
+								lang={LANGS[q.lang].codeLang}
+								title={codeTitle(q.lang)}
+							/>
+						)}
 						<div class="cs-quiz__options">
 							{q.options.map((opt, j) => (
 								<label class="cs-quiz__option" data-index={j}>
@@ -72,15 +81,15 @@ const uid = 'q' + Math.random().toString(36).slice(2, 8);
 						</div>
 					</fieldset>
 					<button type="button" class="cs-quiz__check" hidden disabled>
-						Kontrol et
+						Check
 					</button>
 					<p class="cs-quiz__feedback" aria-live="polite" hidden />
 					<details class="cs-quiz__reveal">
-						<summary>Cevabı göster</summary>
+						<summary>Show answer</summary>
 						<div class="cs-quiz__explanation">
 							<p>
 								<strong>
-									Doğru cevap: {letters[q.answer]}) <span set:html={inline(q.options[q.answer])} />
+									Correct answer: {letters[q.answer]}) <span set:html={inline(q.options[q.answer])} />
 								</strong>
 							</p>
 							<p set:html={inline(q.explanation)} />
@@ -92,7 +101,7 @@ const uid = 'q' + Math.random().toString(36).slice(2, 8);
 	</ol>
 	<div class="cs-quiz__footer" hidden>
 		<p class="cs-quiz__score" aria-live="polite"></p>
-		<button type="button" class="cs-quiz__reset">Yeniden başla</button>
+		<button type="button" class="cs-quiz__reset">Try again</button>
 	</div>
 </cs-quiz>
 
@@ -105,7 +114,7 @@ const uid = 'q' + Math.random().toString(36).slice(2, 8);
 			for (const item of this.items) {
 				const check = item.querySelector<HTMLButtonElement>('.cs-quiz__check')!;
 				const reveal = item.querySelector<HTMLDetailsElement>('.cs-quiz__reveal')!;
-				// JavaScript varken açıklama geri bildirimle birlikte gösterilir.
+				// With JavaScript the explanation is shown together with the feedback.
 				reveal.hidden = true;
 				check.hidden = false;
 
@@ -145,7 +154,7 @@ const uid = 'q' + Math.random().toString(36).slice(2, 8);
 			feedback.replaceChildren();
 			const verdict = document.createElement('p');
 			verdict.className = 'cs-quiz__verdict';
-			verdict.textContent = isCorrect ? 'Doğru.' : 'Yanlış.';
+			verdict.textContent = isCorrect ? 'Correct.' : 'Not quite.';
 			feedback.append(verdict, ...explanation.childNodes);
 			feedback.hidden = false;
 
@@ -158,7 +167,7 @@ const uid = 'q' + Math.random().toString(36).slice(2, 8);
 			if (answered.length < items.length) return;
 			const right = answered.filter((i) => i.dataset.state === 'correct').length;
 			const footer = this.querySelector<HTMLElement>('.cs-quiz__footer')!;
-			footer.querySelector('.cs-quiz__score')!.textContent = `Puan: ${right} / ${items.length}`;
+			footer.querySelector('.cs-quiz__score')!.textContent = `Score: ${right} / ${items.length}`;
 			footer.hidden = false;
 		}
 

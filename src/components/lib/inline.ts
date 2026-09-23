@@ -1,5 +1,5 @@
-// Veri olarak yazılan kısa metinler (quiz seçenekleri, tablo hücreleri) için
-// küçük biçimlendirici: `kod` ve **kalın** desteklenir, geri kalan her şey kaçışlanır.
+// A tiny formatter for short text written as data (quiz options, table cells):
+// supports `code` and **bold**; everything else is escaped.
 
 function escapeHtml(s: string): string {
 	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -16,7 +16,7 @@ export function inline(text: string): string {
 		.join('');
 }
 
-/** Site tabanını ("/" ya da "/repo/") hesaba katarak iç bağlantı üretir. */
+/** Builds an internal link that respects the site base ("/" or "/repo/"). */
 export function withBase(slug: string): string {
 	const base = import.meta.env.BASE_URL.replace(/\/+$/, '');
 	const clean = slug.replace(/^\/+|\/+$/g, '');

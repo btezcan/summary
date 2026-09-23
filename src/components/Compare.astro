@@ -1,23 +1,27 @@
 ---
-// Kavram karşılaştırması. İki biçimde kullanılır:
+// Concept comparison, in two forms:
 //
-// 1) Tablo — hücrelerde `kod` ve **kalın** kullanılabilir:
+// 1) Table — cells may use `code` and **bold**:
 //   <Compare
-//     caption="class, record ve struct"
-//     headers={['', 'class', 'record', 'struct']}
-//     rows={[['Eşitlik', 'referans', 'değer', 'değer'], ...]}
+//     caption="C# vs Python integer types"
+//     headers={['', 'C#', 'Python']}
+//     rows={[['Size', 'fixed (4 bytes for int)', 'grows as needed'], ...]}
 //   />
 //
-// 2) Yan yana kod — her biri doğrulanmış bir örnek:
-//   <Compare items={[{ title: 'class', id: 'rse/class-esitlik' }, { title: 'record', id: 'rse/record-esitlik' }]} />
-import { Code } from '@astrojs/starlight/components';
-import Outputs from './Outputs.astro';
+// 2) Code side by side — each item is a verified sample (any language):
+//   <Compare items={[
+//     { title: 'record', id: 'rse/record', lang: 'cs' },
+//     { title: 'dataclass', id: 'rse/dataclass', lang: 'py' },
+//   ]} />
+// For the standard C# | Python pair of one sample id, use <Pair> instead.
+import LangCode from './LangCode.astro';
 import { inline } from './lib/inline';
-import { getCode, getSample } from './lib/samples';
+import type { Lang } from './lib/samples';
 
 interface Item {
 	title: string;
 	id: string;
+	lang: Lang;
 	file?: string;
 	region?: string;
 }
@@ -27,25 +31,20 @@ interface Props {
 	headers?: string[];
 	rows?: string[][];
 	items?: Item[];
-	/** Yan yana kodda çıktıları göster (varsayılan: true). */
+	/** Show outputs for code items (default: true). */
 	output?: boolean;
 }
 
 const { caption, headers, rows, items, output = true } = Astro.props;
-if (!rows && !items) throw new Error('<Compare> için "rows" ya da "items" gerekli.');
+if (!rows && !items) throw new Error('<Compare> needs "rows" or "items".');
 if (rows && headers && rows.some((r) => r.length !== headers.length)) {
-	throw new Error(`<Compare>: her satırda ${headers.length} hücre olmalı.`);
+	throw new Error(`<Compare>: every row needs ${headers.length} cells.`);
 }
-const codeItems = (items ?? []).map((it) => ({
-	...it,
-	sample: getSample(it.id),
-	code: getCode(it.id, it.file, it.region),
-}));
 ---
 
 {
 	rows && (
-		<div class="cs-compare cs-compare--table" tabindex="0" role="region" aria-label={caption ?? 'Karşılaştırma tablosu'}>
+		<div class="cs-compare cs-compare--table" tabindex="0" role="region" aria-label={caption ?? 'Comparison table'}>
 			<table>
 				{caption && <caption>{caption}</caption>}
 				{headers && (
@@ -74,12 +73,11 @@ const codeItems = (items ?? []).map((it) => ({
 	items && (
 		<figure class="cs-compare cs-compare--code">
 			{caption && <figcaption class="cs-compare__caption">{caption}</figcaption>}
-			<div class="cs-compare__grid" style={`--cs-compare-cols: ${codeItems.length}`}>
-				{codeItems.map((it) => (
+			<div class="cs-compare__grid" style={`--cs-compare-cols: ${items.length}`}>
+				{items.map((it) => (
 					<div class="cs-compare__item">
 						<p class="cs-compare__title" set:html={inline(it.title)} />
-						<Code code={it.code} lang="csharp" />
-						{output && <Outputs sample={it.sample} />}
+						<LangCode id={it.id} lang={it.lang} file={it.file} region={it.region} output={output} />
 					</div>
 				))}
 			</div>

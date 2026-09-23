@@ -1,14 +1,14 @@
 ---
-// Ana sayfadaki ilerleme listesi: öğrenci gözden geçirdiği bölümleri işaretler.
-// İşaretler yalnızca bu tarayıcıda (localStorage) saklanır. Depolama kapalı ya da
-// boşsa liste yine çalışır, sadece işaretler kalıcı olmaz.
+// Home page progress checklist: students tick the chapters they have reviewed.
+// Ticks are stored only in this browser (localStorage). If storage is blocked or
+// empty the list still works; the ticks just don't persist.
 import { allChapters } from '../data/chapters.mjs';
 import { withBase } from './lib/inline';
 ---
 
 <cs-progress class="cs-progress" data-total={allChapters.length}>
 	<p class="cs-progress__summary" aria-live="polite">
-		<span class="cs-progress__count">0</span> / {allChapters.length} bölüm gözden geçirildi
+		<span class="cs-progress__count">0</span> / {allChapters.length} chapters reviewed
 	</p>
 	<ol class="cs-progress__list">
 		{
@@ -19,7 +19,7 @@ import { withBase } from './lib/inline';
 						id={`progress-${c.slug}`}
 						value={c.slug}
 						disabled
-						aria-label={`${c.label} bölümünü gözden geçirdim`}
+						aria-label={`I have reviewed ${c.label}`}
 					/>
 					<a href={withBase(c.slug)}>
 						<span class="cs-progress__number">{c.number}.</span> {c.label}
@@ -29,14 +29,14 @@ import { withBase } from './lib/inline';
 		}
 	</ol>
 	<p class="cs-progress__storage-note" hidden>
-		Tarayıcınız yerel depolamaya izin vermiyor; işaretler sayfa yenilenince kaybolur.
+		Your browser blocks local storage, so these ticks will be lost when the page reloads.
 	</p>
-	<button type="button" class="cs-progress__reset" hidden>İşaretleri temizle</button>
-	<noscript><p>İşaretleme için JavaScript gerekir; bölüm bağlantıları yine de çalışır.</p></noscript>
+	<button type="button" class="cs-progress__reset" hidden>Clear ticks</button>
+	<noscript><p>Ticking chapters needs JavaScript; the chapter links work without it.</p></noscript>
 </cs-progress>
 
 <script>
-	const STORAGE_KEY = 'csharp-rehber:reviewed';
+	const STORAGE_KEY = 'cs-py-guide:reviewed';
 
 	function load(): string[] {
 		try {

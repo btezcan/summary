@@ -1,14 +1,18 @@
 ---
-// Bir örneğin tüm çıktı bloklarını sırayla gösterir (uyarı, hata, çıktı).
+// All output blocks of one sample, in order (warning, error, output).
 import Output from './Output.astro';
 import { outputBlocks, type Sample } from './lib/samples';
 
 interface Props {
 	sample: Sample;
+	/** The code above shows only a region, but the output is the whole program's. */
+	partialCode?: boolean;
 }
 
-const { sample } = Astro.props;
-const blocks = outputBlocks(sample);
+const { sample, partialCode = false } = Astro.props;
+const blocks = outputBlocks(sample).map((b) =>
+	partialCode && b.variant === 'output' ? { ...b, label: `${b.label} (whole program)` } : b,
+);
 ---
 
 {

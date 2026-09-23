@@ -1,9 +1,9 @@
 ---
-// Bilgi kutusu.
-//   tip      İpucu
-//   warning  Dikkat
-//   version  Sürüm notu (ör. version="C# 13")
-//   history  "Eski kodda görebilirsiniz" — güncel olmayan ama karşılaşılabilecek şeyler
+// Callout box.
+//   tip      Tip
+//   warning  Warning
+//   version  Version note (e.g. version="C# 13" or version="Python 3.13")
+//   history  "Old code you may see" — outdated things students will still meet
 interface Props {
 	type?: 'tip' | 'warning' | 'version' | 'history';
 	title?: string;
@@ -13,10 +13,10 @@ interface Props {
 const { type = 'tip', version } = Astro.props;
 
 const defaultTitles = {
-	tip: 'İpucu',
-	warning: 'Dikkat',
-	version: version ? `Sürüm notu: ${version}` : 'Sürüm notu',
-	history: 'Eski kodda görebilirsiniz',
+	tip: 'Tip',
+	warning: 'Warning',
+	version: version ? `Version note: ${version}` : 'Version note',
+	history: 'Old code you may see',
 };
 const title = Astro.props.title ?? defaultTitles[type];
 ---

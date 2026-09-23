@@ -1,0 +1,66 @@
+---
+// The core component of the site: the same concept in C# (left) and Python (right),
+// with the outputs aligned in a second row. The slot below says what differs and why.
+// On narrow screens (or when a sample is marked "wide") it stacks:
+// C# code, C# output, Python code, Python output.
+//
+// Usage:
+//   <Pair id="types/overflow">
+//     C# `int` wraps around silently; Python `int` just grows.
+//   </Pair>
+import { Code } from '@astrojs/starlight/components';
+import Outputs from './Outputs.astro';
+import { codeTitle, getCode, getSample, LANGS, type Lang } from './lib/samples';
+
+interface Props {
+	/** Folder under samples/ that contains cs/ and py/, e.g. "types/overflow" */
+	id: string;
+	csRegion?: string;
+	pyRegion?: string;
+	csFile?: string;
+	pyFile?: string;
+	/** Show outputs (default: true). */
+	output?: boolean;
+	/** Heading above the "what differs" text (default: "What differs"). */
+	diffLabel?: string;
+}
+
+const { id, csRegion, pyRegion, csFile, pyFile, output = true, diffLabel = 'What differs' } = Astro.props;
+const sides = (['cs', 'py'] as Lang[]).map((lang) => ({
+	lang,
+	sample: getSample(id, lang),
+	code: getCode(id, lang, lang === 'cs' ? csFile : pyFile, lang === 'cs' ? csRegion : pyRegion),
+	title: codeTitle(lang, lang === 'cs' ? csFile : pyFile),
+}));
+const stacked = sides.some((s) => s.sample.wide);
+---
+
+<figure class="cs-pair" data-stacked={stacked ? 'true' : undefined} aria-label="C# and Python side by side">
+	<div class="cs-pair__grid">
+		{
+			sides.map((s) => (
+				<div class="cs-pair__code" data-lang={s.lang}>
+					<Code code={s.code} lang={LANGS[s.lang].codeLang} title={s.title} />
+				</div>
+			))
+		}
+		{
+			output &&
+				sides.map((s) => (
+					<div class="cs-pair__out" data-lang={s.lang}>
+						<Outputs sample={s.sample} partialCode={Boolean(s.lang === 'cs' ? csRegion : pyRegion)} />
+					</div>
+				))
+		}
+	</div>
+	{
+		Astro.slots.has('default') && (
+			<figcaption class="cs-pair__diff">
+				<span class="cs-pair__diff-label">{diffLabel}</span>
+				<div class="cs-pair__diff-body">
+					<slot />
+				</div>
+			</figcaption>
+		)
+	}
+</figure>

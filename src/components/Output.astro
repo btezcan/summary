@@ -1,22 +1,22 @@
 ---
-// Program çıktısı bloğu. Koddan görsel olarak ayrı durur ve sözdizimi
-// renklendirmesi yoktur. Metin normalde <Sample>/<Predict>/<Mistake> üzerinden
-// doğrulanmış çıktı dosyalarından gelir; elle yazılmış çıktı kullanma.
+// Program output block. Visually separate from code, with no syntax highlighting.
+// The text normally comes from verified output files via <Sample>/<Pair>/<Predict>/
+// <Mistake>; don't use hand-written output.
 import type { OutputBlock } from './lib/samples';
 
 interface Props {
 	text: string;
 	variant?: OutputBlock['variant'];
 	label?: string;
-	/** Programa klavyeden verilen girdi (input.txt). */
+	/** What was typed on the keyboard (input.txt). */
 	input?: string;
 }
 
 const defaultLabels: Record<OutputBlock['variant'], string> = {
-	output: 'Çıktı',
-	warning: 'Derleyici uyarısı',
-	'compile-error': 'Derleme hatası',
-	exception: 'Çalışma zamanı hatası',
+	output: 'Output',
+	warning: 'Warning',
+	'compile-error': 'Compile error',
+	exception: 'Runtime error',
 };
 
 const { text, variant = 'output', input } = Astro.props;
@@ -29,10 +29,10 @@ const trimmedInput = input?.replace(/\s+$/, '');
 	{
 		trimmedInput && (
 			<p class="cs-output__input">
-				<span class="cs-output__input-label">Klavyeden girilen:</span>
+				<span class="cs-output__input-label">Typed input:</span>
 				<code>{trimmedInput}</code>
 			</p>
 		)
 	}
-	<pre class="cs-output__text" tabindex="0"><code>{text === '' ? '(çıktı yok)' : text}</code></pre>
+	<pre class="cs-output__text" tabindex="0"><code>{text === '' ? '(no output)' : text}</code></pre>
 </figure>

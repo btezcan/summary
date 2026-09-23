@@ -1,33 +1,37 @@
 ---
-// Sık yapılan hata: "Hatalı / Doğru" karşılaştırması. Her iki taraf da
-// doğrulanmış bir örnektir; hatalı tarafın derleme hatası, istisnası ya da
-// yanlış çıktısı gerçekten üretilmiş haliyle gösterilir.
-// Kullanım:
-//   <Mistake wrong="turler/hata-atanmamis" right="turler/hata-atanmamis-duzeltme">
-//     Yerel değişken kullanılmadan önce bir değer almalıdır.
+// Common mistake: "Wrong / Right" comparison in one language. Both sides are
+// verified samples; the wrong side's compile error, exception or wrong output is
+// shown exactly as it was produced.
+// Usage:
+//   <Mistake lang="cs" wrong="types/unassigned" right="types/unassigned-fixed">
+//     A local variable must have a value before it is used.
 //   </Mistake>
-import { Code } from '@astrojs/starlight/components';
-import Outputs from './Outputs.astro';
-import { getCode, getSample } from './lib/samples';
+import LangCode from './LangCode.astro';
+import { LANGS, type Lang } from './lib/samples';
 
 interface Props {
+	lang: Lang;
 	wrong: string;
 	right: string;
 	wrongRegion?: string;
 	rightRegion?: string;
-	/** Kısa başlık, ör. "Atanmamış değişken". */
+	/** Short title, e.g. "Unassigned variable". */
 	title?: string;
 }
 
-const { wrong, right, wrongRegion, rightRegion, title } = Astro.props;
+const { lang, wrong, right, wrongRegion, rightRegion, title } = Astro.props;
+const langName = LANGS[lang].name;
 const sides = [
-	{ kind: 'wrong', label: 'Hatalı', sample: getSample(wrong), code: getCode(wrong, 'Program.cs', wrongRegion) },
-	{ kind: 'right', label: 'Doğru', sample: getSample(right), code: getCode(right, 'Program.cs', rightRegion) },
+	{ kind: 'wrong', label: 'Wrong', id: wrong, region: wrongRegion },
+	{ kind: 'right', label: 'Right', id: right, region: rightRegion },
 ];
 ---
 
-<section class="cs-mistake" aria-label={title ? `Sık yapılan hata: ${title}` : 'Sık yapılan hata'}>
-	{title && <p class="cs-mistake__title">{title}</p>}
+<section class="cs-mistake" aria-label={`Common mistake (${langName})${title ? ': ' + title : ''}`}>
+	<p class="cs-mistake__title">
+		<span class="cs-mistake__lang">{langName}</span>
+		{title && <span>{title}</span>}
+	</p>
 	<div class="cs-mistake__grid">
 		{
 			sides.map((s) => (
@@ -38,8 +42,7 @@ const sides = [
 						</span>
 						{s.label}
 					</p>
-					<Code code={s.code} lang="csharp" />
-					<Outputs sample={s.sample} />
+					<LangCode id={s.id} lang={lang} region={s.region} title={LANGS[lang].name} />
 				</div>
 			))
 		}

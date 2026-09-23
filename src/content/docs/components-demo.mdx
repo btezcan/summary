@@ -1,0 +1,132 @@
+---
+title: Components Demo
+description: Internal page for authors — every component in use.
+pagefind: false
+head:
+  - tag: meta
+    attrs:
+      name: robots
+      content: noindex
+---
+
+import { Pair, Sample, Output, Predict, Quiz, Mistake, Note, Compare, ProgressChecklist } from '~/components';
+
+This page is not in the sidebar. It is used to check how the components look in
+both themes and at phone width. All code and output here come from the verified
+samples in `samples/components-demo/`.
+
+## Summary
+
+- A `<Pair>` shows C# on the left and Python on the right.
+- Outputs line up in a second row.
+- The list right after a "Summary" heading is framed like a margin note.
+
+## Pair
+
+<Pair id="components-demo/hello">
+  Both print the same thing, but only C# needs a cast: in Python `/` always
+  gives a `float`, and `//` is integer (floor) division.
+</Pair>
+
+Only a region, from both files:
+
+<Pair id="components-demo/hello" csRegion="division" pyRegion="division" />
+
+Keyboard input:
+
+<Pair id="components-demo/input">
+  The typed text doesn't appear in captured output: a real terminal would show
+  `Ayşe` after the prompt.
+</Pair>
+
+Locale — the languages disagree:
+
+<Pair id="components-demo/locale">
+  With a Turkish culture, C# upper-cases `i` to `İ`. Python's `upper()` never
+  depends on the locale; only locale-aware functions such as `locale.atof` do.
+</Pair>
+
+Warnings from the compiler and from the Python interpreter:
+
+<Pair id="components-demo/warning" />
+
+Multi-file samples:
+
+<Pair id="components-demo/multi-file" csFile="Student.cs" pyFile="student.py" output={false} />
+<Pair id="components-demo/multi-file" />
+
+## Sample (one language)
+
+<Sample id="components-demo/hello" lang="py" region="division" mark="3" />
+
+## Output (on its own)
+
+<Output text="Hello, World!" />
+
+## Mistake
+
+<Mistake lang="cs" title="Unassigned variable" wrong="components-demo/compile-error" right="components-demo/hello">
+  A local variable must have a value before it is used (definite assignment).
+</Mistake>
+
+<Mistake lang="py" title="Missing colon" wrong="components-demo/compile-error" right="components-demo/hello" />
+
+<Mistake lang="py" title="Parsing a decimal as int" wrong="components-demo/exception" right="components-demo/hello" rightRegion="division" />
+
+## Predict
+
+<Predict id="components-demo/locale">
+  `tr-TR` upper-cases `i` to `İ` in C#. Use `ToUpperInvariant` for commands and
+  file names. Python's `str.upper()` is locale-independent.
+</Predict>
+
+<Predict id="components-demo/exception" lang="cs" />
+
+## Quiz
+
+<Quiz questions={[
+  {
+    question: 'What does `7 / 2` evaluate to in C#, and in Python?',
+    options: ['`3` and `3.5`', '`3.5` and `3.5`', '`3` and `3`', '`3.5` and `3`'],
+    answer: 0,
+    explanation: 'In C#, `/` on two `int`s truncates. In Python, `/` always gives a `float`; use `//` for integer division.',
+  },
+  {
+    question: 'What does this program print?',
+    sample: 'components-demo/newer-version',
+    lang: 'cs',
+    options: ['`123`', '`6`', 'Compile error'],
+    answer: 1,
+    explanation: '`params List<int>` is a C# 13 feature; the numbers are collected into a list and `Sum` returns 6.',
+  },
+]} />
+
+## Note
+
+<Note type="tip">Read the Summary first.</Note>
+<Note type="warning">`double` / `float` is not suitable for money.</Note>
+<Note type="version" version="Python 3.13">`copy.replace` works on dataclasses.</Note>
+<Note type="history">`ArrayList` (C#) and `print "x"` (Python 2) appear in old code.</Note>
+
+## Compare
+
+<Compare
+  caption="Integer types"
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Type', '`int` (and 7 others)', '`int`'],
+    ['Size', '4 bytes, fixed', 'grows as needed'],
+    ['Overflow', 'wraps around silently', 'never happens'],
+  ]}
+/>
+
+<Compare items={[
+  { title: 'C# 13 `params` collection', id: 'components-demo/newer-version', lang: 'cs' },
+  { title: 'Python 3.13 `copy.replace`', id: 'components-demo/newer-version', lang: 'py' },
+]} />
+
+## Progress checklist
+
+<ProgressChecklist />
+
+Link test: [Types](/types/) and [anchor](/types/#summary).

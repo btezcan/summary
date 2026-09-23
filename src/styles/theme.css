@@ -1,21 +1,22 @@
 /*
- * "Defter ve Çini" — site teması.
+ * "Defter ve Çini" (notebook and tile) — the site theme.
  *
- * Altı renk, her birinin tek bir anlamı var:
- *   Kâğıt     arka plan
- *   Mürekkep  metin
- *   Kobalt    bağlantı, odak, etkin öğe, sürüm notu
- *   Firuze    program çıktısı, "Doğru", ipucu, doğru cevap
- *   Mercan    "Hatalı", hata mesajları, dikkat, yanlış cevap
- *   Kum       ikincil metin, kenarlıklar, "eski kod" notu
+ * Six colors, each with exactly one meaning:
+ *   Paper (kâğıt)    background
+ *   Ink (mürekkep)   text
+ *   Cobalt (kobalt)  links, focus, active item, version note
+ *   Turquoise (firuze)  program output, "Right", tip, correct answer
+ *   Coral (mercan)   "Wrong", error messages, warning, wrong answer
+ *   Sand (kum)       secondary text, borders, "old code" note
+ * The two languages are told apart by text labels, never by new colors.
  *
- * Tüm metin/arka plan çiftleri WCAG AA (≥ 4.5:1) ile kontrol edildi.
- * Starlight koyu temayı :root'ta, açık temayı [data-theme='light'] altında tanımlar;
- * burada da aynı düzen izlenir.
+ * Every text/background pair was checked against WCAG AA (>= 4.5:1).
+ * Starlight defines the dark theme on :root and the light theme under
+ * [data-theme='light']; this file follows the same pattern.
  */
 
 :root {
-	/* Palet — koyu */
+	/* Palette — dark */
 	--cs-paper: #15181d;
 	--cs-paper-deep: #0f1216;
 	--cs-paper-raised: #1c1f25;
@@ -37,7 +38,7 @@
 
 	--cs-on-accent: #15181d;
 
-	/* Starlight eşlemesi — koyu */
+	/* Starlight mapping — dark */
 	--sl-color-white: #f6f3ec;
 	--sl-color-gray-1: var(--cs-ink);
 	--sl-color-gray-2: var(--cs-text);
@@ -53,13 +54,14 @@
 
 	--sl-color-bg-inline-code: var(--cs-paper-raised);
 
-	/* Yazı tipleri */
+	/* Fonts */
 	--sl-font: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
 	--sl-font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
 	--cs-font-heading: 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif;
 
-	/* Ölçüler: kod sütunu ~84 karakter, düzyazı en fazla ~70 karakter */
-	--sl-content-width: 48rem;
+	/* Sizes: 56rem fits two ~48-character code columns side by side (<Pair>);
+	   prose stays at most ~70 characters wide. */
+	--sl-content-width: 56rem;
 	--cs-prose-width: 70ch;
 	--sl-text-body: 1.0625rem;
 	--sl-line-height: 1.7;
@@ -68,7 +70,7 @@
 }
 
 :root[data-theme='light'] {
-	/* Palet — açık */
+	/* Palette — light */
 	--cs-paper: #faf7f0;
 	--cs-paper-deep: #f0ebdf;
 	--cs-paper-raised: #f5f1e8;
@@ -90,7 +92,7 @@
 
 	--cs-on-accent: #faf7f0;
 
-	/* Starlight eşlemesi — açık (Starlight'ta açık temada ölçek ters döner) */
+	/* Starlight mapping — light (Starlight inverts the gray scale in light mode) */
 	--sl-color-white: var(--cs-ink);
 	--sl-color-gray-1: #262c38;
 	--sl-color-gray-2: var(--cs-text);
@@ -108,7 +110,7 @@
 	--sl-color-bg-inline-code: var(--cs-paper-deep);
 }
 
-/* Starlight'ın kendi renk tonlarını paletle hizala (ör. :::tip kutuları). */
+/* Align Starlight's own hues with the palette (e.g. :::tip boxes). */
 :root,
 :root[data-theme='light'] {
 	--sl-color-green-high: var(--cs-firuze);
@@ -133,7 +135,7 @@ body {
 	color: var(--cs-text);
 }
 
-/* --- Tipografi --------------------------------------------------------------- */
+/* --- Typography --------------------------------------------------------------- */
 
 .sl-markdown-content :is(h1, h2, h3, h4, h5),
 h1#_top,
@@ -153,12 +155,7 @@ h1#_top {
 	border-top: 1px solid var(--cs-line);
 }
 
-/* Starlight tema seçicisi 6.25em genişlikte; Türkçe "Otomatik" sığmıyor. */
-starlight-theme-select label {
-	--sl-select-width: 7.25em !important;
-}
-
-/* Düzyazı dar kalır; kod, tablo ve bileşenler sütunun tamamını kullanır. */
+/* Prose stays narrow; code, tables and components use the full column. */
 .sl-markdown-content > :is(p, ul, ol, blockquote, dl) {
 	max-width: var(--cs-prose-width);
 }
@@ -173,7 +170,7 @@ starlight-theme-select label {
 	text-decoration-thickness: 2px;
 }
 
-/* Satır içi kod */
+/* Inline code */
 .sl-markdown-content :not(pre) > code,
 .cs-inline-code {
 	font-family: var(--__sl-font-mono);
@@ -185,7 +182,7 @@ starlight-theme-select label {
 	color: var(--cs-ink);
 }
 
-/* Bağ harfleri kapalı: öğrenci ekranda gördüğü karakterleri yazmalı (=> değil ⇒). */
+/* Ligatures off: students must type what they see (=> not ⇒). */
 code,
 kbd,
 pre,
@@ -197,7 +194,7 @@ pre,
 		'liga' 0;
 }
 
-/* --- Odak ve hareket --------------------------------------------------------- */
+/* --- Focus and motion --------------------------------------------------------- */
 
 :focus-visible {
 	outline: 2px solid var(--cs-kobalt);
@@ -215,9 +212,9 @@ pre,
 	}
 }
 
-/* --- Özet kutusu ------------------------------------------------------------
- * Her sayfa "## Özet" ile başlar; hemen ardından gelen liste kenar notu gibi çerçevelenir. */
-.sl-markdown-content .sl-heading-wrapper:has(> #ozet) + ul {
+/* --- Summary box ------------------------------------------------------------
+ * Every page starts with "## Summary"; the list right after it is framed like a margin note. */
+.sl-markdown-content .sl-heading-wrapper:has(> #summary) + ul {
 	padding: 1rem 1.25rem 1rem 2.25rem;
 	border: 1px solid var(--cs-line);
 	border-left: 4px solid var(--cs-kum);
@@ -225,11 +222,11 @@ pre,
 	background: var(--cs-paper-raised);
 }
 
-.sl-markdown-content .sl-heading-wrapper:has(> #ozet) + ul > li + li {
+.sl-markdown-content .sl-heading-wrapper:has(> #summary) + ul > li + li {
 	margin-top: 0.35rem;
 }
 
-/* --- Tablolar ----------------------------------------------------------------- */
+/* --- Tables ----------------------------------------------------------------- */
 
 .sl-markdown-content table {
 	font-size: 0.95rem;

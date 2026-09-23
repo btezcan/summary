@@ -1,15 +1,18 @@
 /*
- * Bileşen stilleri. Renkler yalnızca theme.css'teki --cs-* değişkenlerinden gelir.
- * Renk hiçbir zaman tek işaret değildir: doğru/yanlış, çıktı/hata ayrımı ayrıca
- * etiket, simge ve kenarlık biçimiyle (düz / kesik) gösterilir.
+ * Component styles. Colors come only from the --cs-* variables in theme.css.
+ * Color is never the only signal: right/wrong and output/error are also shown with
+ * a label, an icon and the border style (solid / dashed / double).
  */
 
-.sl-markdown-content :is(.cs-sample, .cs-output, .cs-note, .cs-predict, .cs-mistake, .cs-quiz, .cs-compare, .cs-progress) {
+.sl-markdown-content :is(.cs-sample, .cs-pair, .cs-output, .cs-note, .cs-predict, .cs-mistake, .cs-quiz, .cs-compare, .cs-progress) {
 	margin-top: var(--cs-gap);
 }
 
-/* Bir kod bloğu ile çıktısı birbirine yapışık durur. */
+/* A code block and its output sit close together. */
 .cs-sample > * + *,
+.cs-pair__code > * + *,
+.cs-pair__out > * + *,
+.cs-predict__side > * + *,
 .cs-predict__content > * + *,
 .cs-mistake__side > * + *,
 .cs-compare__item > * + * {
@@ -20,18 +23,90 @@
 	margin-top: 0.375rem;
 }
 
-/* Starlight, içerikteki ardışık öğelere üst boşluk ekler; bileşen içinde sıfırla. */
-.sl-markdown-content :is(.cs-sample, .cs-predict, .cs-mistake, .cs-quiz, .cs-compare, .cs-progress, .cs-note) :where(p, ul, ol, pre, figure, .expressive-code) {
+/* Starlight adds top margin between siblings in content; reset it inside components. */
+.sl-markdown-content :is(.cs-sample, .cs-pair, .cs-predict, .cs-mistake, .cs-quiz, .cs-compare, .cs-progress, .cs-note) :where(p, ul, ol, pre, figure, .expressive-code) {
 	margin-top: 0;
 }
 
-/* Izgara öğeleri yan yana hizalı başlamalı. */
-.sl-markdown-content :is(.cs-mistake__grid, .cs-compare__grid) > * {
+/* Grid items must start aligned side by side. */
+.sl-markdown-content :is(.cs-mistake__grid, .cs-compare__grid, .cs-pair__grid, .cs-predict__row) > * {
 	margin-top: 0;
 }
 
-.sl-markdown-content :is(.cs-predict__explain, .cs-mistake__explain, .cs-note__body, .cs-quiz__feedback, .cs-quiz__explanation) > * + * {
+.sl-markdown-content :is(.cs-pair__diff-body, .cs-predict__explain, .cs-mistake__explain, .cs-note__body, .cs-quiz__feedback, .cs-quiz__explanation) > * + * {
 	margin-top: 0.5rem;
+}
+
+/* --- Pair: C# | Python ---------------------------------------------------------
+ * Row 1: both code blocks; row 2: both outputs, so the outputs line up. Stacked
+ * (C# code, C# output, Python code, Python output) when the column is too narrow
+ * for two ~48-character code columns, or when a sample is marked "wide".
+ * Code inside a pair is slightly smaller and less padded so 48 characters fit:
+ * 48 × 0.6em × 13px + 2 × 14px ≈ 402px per column → 51.5rem for both + gap. */
+
+.cs-pair,
+.cs-predict {
+	container-type: inline-size;
+}
+
+.cs-pair {
+	margin-inline: 0;
+	margin-bottom: 0;
+}
+
+.cs-pair .expressive-code,
+.cs-predict__row:has(> :nth-child(2)) .expressive-code {
+	--ec-codeFontSize: 0.8125rem !important;
+	--ec-codePadInl: 0.875rem !important;
+}
+
+.cs-pair__grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-areas: 'cs-code' 'cs-out' 'py-code' 'py-out';
+	gap: 0.375rem 1rem;
+}
+
+.cs-pair__code[data-lang='cs'] { grid-area: cs-code; }
+.cs-pair__code[data-lang='py'] { grid-area: py-code; margin-top: 0.75rem; }
+.cs-pair__out[data-lang='cs'] { grid-area: cs-out; }
+.cs-pair__out[data-lang='py'] { grid-area: py-out; }
+
+.cs-pair__code,
+.cs-pair__out {
+	min-width: 0;
+}
+
+@container (min-width: 51.5rem) {
+	.cs-pair:not([data-stacked]) .cs-pair__grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-areas: 'cs-code py-code' 'cs-out py-out';
+	}
+
+	.cs-pair:not([data-stacked]) .cs-pair__code[data-lang='py'] {
+		margin-top: 0;
+	}
+}
+
+.cs-pair__diff {
+	margin-top: 0.75rem;
+	padding: 0.1rem 0 0.1rem 1rem;
+	border-left: 2px solid var(--cs-line-strong);
+	max-width: var(--cs-prose-width);
+	color: var(--cs-text);
+}
+
+.cs-pair__diff-label {
+	display: block;
+	font-size: var(--sl-text-2xs);
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--cs-muted);
+}
+
+.cs-pair__diff-body {
+	margin-top: 0.15rem;
 }
 
 /* --- Output ------------------------------------------------------------------ */
@@ -91,8 +166,8 @@
 	color: var(--cs-ink);
 }
 
-/* Hata ve uyarı mesajları uzun tek satırlardır: dar sütunda kaydırmak yerine sar.
- * Program çıktısı ise boşlukları anlamlı olabileceği için olduğu gibi kalır. */
+/* Error and warning messages are long single lines: wrap them in narrow columns
+ * instead of scrolling. Program output keeps its whitespace, which may matter. */
 .cs-output:not([data-variant='output']) .cs-output__text {
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
@@ -156,11 +231,26 @@
 }
 
 .cs-mistake__title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.6rem;
 	font-family: var(--cs-font-heading);
 	font-weight: 600;
 	font-size: var(--sl-text-lg);
 	color: var(--cs-ink);
 	margin-bottom: 0.5rem;
+}
+
+/* Language chip: a text label, not a color, tells C# and Python apart. */
+.cs-mistake__lang {
+	padding: 0.05rem 0.5rem;
+	border: 1px solid var(--cs-line-strong);
+	border-radius: 999px;
+	font-family: var(--__sl-font);
+	font-size: var(--sl-text-xs);
+	font-weight: 700;
+	color: var(--cs-muted);
 }
 
 .cs-mistake__grid {
@@ -227,7 +317,7 @@
 	margin-top: 0.75rem;
 }
 
-/* <summary> düğme gibi görünür; klavyeyle Enter/Space ile açılır. */
+/* <summary> looks like a button; Enter/Space opens it from the keyboard. */
 .cs-predict__answer > summary,
 .cs-quiz__reveal > summary {
 	display: inline-flex;
@@ -244,7 +334,7 @@
 	user-select: none;
 }
 
-/* Starlight'ın <details> çizgisini kaldır; ok simgesi Starlight'tan gelir. */
+/* Remove Starlight's <details> border line. */
 .sl-markdown-content :is(.cs-predict__answer, .cs-quiz__reveal) {
 	border-inline-start: 0;
 	padding-inline-start: 0;
@@ -258,7 +348,7 @@
 	margin-bottom: 0;
 }
 
-/* Starlight'ın maske simgesi küçük boyutta okunmuyor; düz bir üçgen kullan. */
+/* Starlight's mask icon is unreadable at this size; use a plain triangle. */
 .sl-markdown-content :is(.cs-predict__answer, .cs-quiz__reveal) > summary::before {
 	content: '▸';
 	width: auto;
@@ -290,6 +380,34 @@
 	max-width: var(--cs-prose-width);
 }
 
+.cs-predict__row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0.75rem 1rem;
+}
+
+.cs-predict__side {
+	min-width: 0;
+}
+
+@container (min-width: 51.5rem) {
+	.cs-predict__row:has(> :nth-child(2)) {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.cs-predict__lang {
+	font-size: var(--sl-text-2xs);
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--cs-muted);
+}
+
+.cs-predict__content > .cs-predict__row + .cs-predict__explain {
+	margin-top: 0.75rem;
+}
+
 @keyframes cs-reveal {
 	from {
 		opacity: 0;
@@ -308,7 +426,7 @@
 	padding: 0;
 	margin: 0;
 	display: grid;
-	/* minmax(0, …): uzun kod satırı ızgarayı ekrandan taşırmasın, kod bloğu kendi içinde kaysın. */
+	/* minmax(0, …): a long code line must not push the grid off screen; the code block scrolls instead. */
 	grid-template-columns: minmax(0, 1fr);
 	gap: 1rem;
 }
@@ -426,12 +544,12 @@
 }
 
 .cs-quiz__option[data-correct]::after {
-	content: '✓ Doğru cevap';
+	content: '✓ Correct answer';
 	color: var(--cs-firuze);
 }
 
 .cs-quiz__option[data-wrong]::after {
-	content: '✗ Seçiminiz';
+	content: '✗ Your choice';
 	color: var(--cs-mercan);
 }
 

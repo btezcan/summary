@@ -1,9 +1,9 @@
 <Project>
   <!--
-    Tüm örnekler için ortak ayarlar (tek dosyalık uygulamalar ve projeler).
-    Site varsayılan olarak C# 12'ye kadar öğretir: daha yeni bir özellik
-    derleme hatası verir. Yeni özellik kullanan örnek, sample.json içinde
-    "langVersion" belirtir ve sayfada <Note type="version"> ile işaretlenir.
+    Shared settings for every C# sample (file-based apps and projects).
+    The site teaches up to C# 12: a newer feature fails to compile. A sample
+    that uses one on purpose sets "langVersion" in its sample.json, and the page
+    marks it with <Note type="version">.
   -->
   <PropertyGroup>
     <LangVersion>12</LangVersion>

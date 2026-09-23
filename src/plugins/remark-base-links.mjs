@@ -1,7 +1,7 @@
-// MDX içindeki kök-göreli bağlantılara ("/turler/") site tabanını ekler.
-// GitHub Pages siteyi "/<repo>/" altında sunduğu için, bu olmadan içerikteki
-// bağlantılar yanlış adrese gider. Starlight'ın kendi menüsü bunu zaten yapıyor;
-// bu eklenti yalnızca yazılan içerik içindir.
+// Adds the site base to root-relative links in MDX ("/types/" → "/<repo>/types/").
+// GitHub Pages serves the site under "/<repo>/", so without this, links written in
+// content would point to the wrong address. Starlight's own navigation already does
+// this; the plugin is only for links in written content.
 
 /** @param {{ base: string }} options */
 export default function remarkBaseLinks({ base }) {

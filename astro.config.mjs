@@ -4,11 +4,11 @@ import starlight from '@astrojs/starlight';
 import { chapterGroups, extraPages } from './src/data/chapters.mjs';
 import remarkBaseLinks from './src/plugins/remark-base-links.mjs';
 
-// TODO: GitHub deposu oluşturulunca "KULLANICI/REPO-ADI" kısmını güncelle.
-const REPO = 'KULLANICI/REPO-ADI';
+// TODO: replace with the real GitHub repository once it exists.
+const REPO = 'USER/REPO-NAME';
 
-// CI (GitHub Pages) bu iki değeri actions/configure-pages çıktısından verir.
-// Yerelde site kökten ("/") sunulur.
+// In CI (GitHub Pages) both values come from actions/configure-pages.
+// Locally the site is served from the root ("/").
 const site = process.env.SITE_URL || 'https://example.github.io';
 const base = process.env.BASE_PATH || '/';
 
@@ -20,11 +20,11 @@ export default defineConfig({
 	},
 	integrations: [
 		starlight({
-			title: 'C# Başvuru Rehberi',
+			title: 'C# & Python Side by Side',
 			description:
-				'Üniversite öğrencileri için C# özet ve başvuru rehberi: sözdizimi, kavramlar, doğrulanmış örnekler ve alıştırmalar.',
+				'A comparative C# and Python reference for university students: syntax, concepts, verified examples and exercises.',
 			locales: {
-				root: { label: 'Türkçe', lang: 'tr' },
+				root: { label: 'English', lang: 'en' },
 			},
 			social: [{ icon: 'github', label: 'GitHub', href: `https://github.com/${REPO}` }],
 			editLink: { baseUrl: `https://github.com/${REPO}/edit/main/` },
@@ -36,11 +36,11 @@ export default defineConfig({
 					items: group.chapters.map((c) => ({ label: c.label, slug: c.slug })),
 				})),
 				{
-					label: 'Ekler',
+					label: 'Reference',
 					items: extraPages.map((p) => ({ label: p.label, slug: p.slug })),
 				},
 			],
-			// Kod bloklarının teması: ec.config.mjs
+			// Code block themes: ec.config.mjs
 			customCss: [
 				'@fontsource-variable/atkinson-hyperlegible-next/wght.css',
 				'@fontsource-variable/atkinson-hyperlegible-next/wght-italic.css',

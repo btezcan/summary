@@ -1,4 +1,4 @@
-name: Örnekleri doğrula, siteyi derle ve yayınla
+name: Verify samples, build and deploy the site
 
 on:
   push:
@@ -19,7 +19,7 @@ env:
 
 jobs:
   verify-samples:
-    name: C# örneklerini doğrula
+    name: Verify C# and Python samples
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -28,21 +28,33 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # 3.14 runs every sample; 3.12 is the oldest version taught and must run
+      # them the same way. Both end up on PATH as python3.14 / python3.12.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: |
+            3.12
+            3.14
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
 
-      - name: Örnekleri derle, çalıştır ve çıktıları karşılaştır
+      # Locale samples set tr-TR / tr_TR.UTF-8 explicitly; Ubuntu doesn't ship it.
+      - name: Generate the Turkish locale
+        run: sudo locale-gen tr_TR.UTF-8
+
+      - name: Build, run and compare every sample
         run: node scripts/verify-samples.mjs
 
   build:
-    name: Siteyi derle
+    name: Build the site
     needs: verify-samples
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0 # "Son güncelleme" tarihleri için git geçmişi gerekli
+          fetch-depth: 0 # "Last updated" dates need the git history
 
       - uses: actions/setup-node@v7
         with:
@@ -51,7 +63,7 @@ jobs:
 
       - run: npm ci
 
-      - name: GitHub Pages ayarlarını al
+      - name: Read the GitHub Pages settings
         id: pages
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/configure-pages@v6
@@ -68,7 +80,7 @@ jobs:
           path: dist
 
   deploy:
-    name: GitHub Pages'e yayınla
+    name: Deploy to GitHub Pages
     needs: build
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest

@@ -1,0 +1,2 @@
+main.py:2: SyntaxWarning: "is" with 'int' literal. Did you mean "=="?
+  if x is 5:

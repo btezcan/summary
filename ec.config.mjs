@@ -1,6 +1,6 @@
-// Kod blokları (Expressive Code) için "Defter ve Çini" temaları.
-// Renkler src/styles/theme.css ile aynı palettedir; kırmızı (mercan) bilerek
-// kullanılmaz, çünkü sitede yalnızca hataları işaret eder.
+// "Defter ve Çini" themes for code blocks (Expressive Code), for C# and Python.
+// The colors are the palette from src/styles/theme.css. Red (coral) is deliberately
+// not used, because on this site it only ever marks errors.
 import { defineEcConfig, ExpressiveCodeTheme } from '@astrojs/starlight/expressive-code';
 
 /** @param {{ name: string, type: 'light' | 'dark', c: Record<string, string> }} p */
@@ -22,8 +22,19 @@ function makeTheme({ name, type, c }) {
 		tokenColors: [
 			{ scope: ['comment', 'punctuation.definition.comment'], settings: { foreground: c.comment, fontStyle: 'italic' } },
 			{
-				// "new", "typeof", "is", "as" gibi anahtar kelimeler C# dilbilgisinde keyword.operator.expression altında.
-				scope: ['keyword', 'storage', 'storage.type', 'storage.modifier', 'keyword.operator.expression', 'constant.language', 'variable.language'],
+				// C# puts keywords such as "new", "typeof", "is", "as" under keyword.operator.expression;
+				// Python puts the word operators and/or/not/in/is under keyword.operator.logical.
+				// C#'s symbolic && || ! stay plain.
+				scope: [
+					'keyword',
+					'storage',
+					'storage.type',
+					'storage.modifier',
+					'keyword.operator.expression',
+					'keyword.operator.logical.python',
+					'constant.language',
+					'variable.language',
+				],
 				settings: { foreground: c.keyword },
 			},
 			{ scope: ['keyword.operator', 'punctuation'], settings: { foreground: c.fg } },
@@ -32,7 +43,16 @@ function makeTheme({ name, type, c }) {
 				settings: { foreground: c.type },
 			},
 			{ scope: ['string', 'string.quoted', 'constant.character', 'punctuation.definition.string'], settings: { foreground: c.string } },
-			{ scope: ['constant.character.escape', 'punctuation.definition.interpolation', 'punctuation.section.interpolation'], settings: { foreground: c.keyword } },
+			{
+				// Interpolation markers: C# $"{x}" braces and Python f-string {x} placeholders.
+				scope: [
+					'constant.character.escape',
+					'punctuation.definition.interpolation',
+					'punctuation.section.interpolation',
+					'constant.character.format.placeholder',
+				],
+				settings: { foreground: c.keyword },
+			},
 			{ scope: ['constant.numeric'], settings: { foreground: c.number } },
 			{ scope: ['entity.name.function', 'support.function'], settings: { foreground: c.fg, fontStyle: 'bold' } },
 			{ scope: ['variable', 'variable.other', 'entity.name.variable'], settings: { foreground: c.fg } },
@@ -76,7 +96,7 @@ const dark = makeTheme({
 
 export default defineEcConfig({
 	themes: [dark, light],
-	// Starlight'ın açık/koyu tema düğmesiyle eşleşir.
+	// Follows Starlight's light/dark theme switch.
 	useStarlightDarkModeSwitch: true,
 	useStarlightUiThemeColors: false,
 	styleOverrides: {

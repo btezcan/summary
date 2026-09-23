@@ -1,5 +1,6 @@
-// Bölüm listesi: kenar çubuğu (astro.config.mjs) ve ana sayfadaki ilerleme
-// listesi bu tek kaynaktan üretilir. Yeni bölüm eklerken yalnızca burayı güncelle.
+// The chapter list: the sidebar (astro.config.mjs) and the home page progress
+// checklist are both generated from this single source. When adding a chapter,
+// only change this file (and add its page).
 
 /**
  * @typedef {{ slug: string, label: string }} Chapter
@@ -9,52 +10,52 @@
 /** @type {ChapterGroup[]} */
 export const chapterGroups = [
 	{
-		label: 'Temeller',
+		label: 'Basics',
 		chapters: [
-			{ slug: 'baslarken', label: 'Başlarken' },
-			{ slug: 'turler', label: 'Türler ve Değişkenler' },
-			{ slug: 'operatorler', label: 'Operatörler' },
-			{ slug: 'stringler', label: 'Stringler' },
-			{ slug: 'kontrol-akisi', label: 'Kontrol Akışı' },
-			{ slug: 'metotlar', label: 'Metotlar' },
-			{ slug: 'koleksiyonlar', label: 'Diziler ve Koleksiyonlar' },
+			{ slug: 'getting-started', label: 'Getting Started' },
+			{ slug: 'types', label: 'Types and Variables' },
+			{ slug: 'operators', label: 'Operators' },
+			{ slug: 'strings', label: 'Strings' },
+			{ slug: 'control-flow', label: 'Control Flow' },
+			{ slug: 'functions', label: 'Methods and Functions' },
+			{ slug: 'collections', label: 'Arrays and Collections' },
 		],
 	},
 	{
-		label: 'Nesneler',
+		label: 'Objects',
 		chapters: [
-			{ slug: 'siniflar', label: 'Sınıflar ve Nesneler' },
-			{ slug: 'record-struct-enum', label: 'Record, Struct, Enum' },
-			{ slug: 'kalitim', label: 'Kalıtım ve Çok Biçimlilik' },
+			{ slug: 'classes', label: 'Classes and Objects' },
+			{ slug: 'records-structs-enums', label: 'Records, Structs, Enums' },
+			{ slug: 'inheritance', label: 'Inheritance and Polymorphism' },
 		],
 	},
 	{
-		label: 'Modern C#',
+		label: 'Modern Features',
 		chapters: [
-			{ slug: 'null-guvenligi', label: 'Null Güvenliği' },
-			{ slug: 'hatalar', label: 'Hatalar (Exceptions)' },
-			{ slug: 'generics-lambda', label: 'Generics, Delegate ve Lambda' },
-			{ slug: 'linq', label: 'LINQ' },
-			{ slug: 'dosyalar', label: 'Dosyalar ve using' },
+			{ slug: 'null-safety', label: 'Null Safety' },
+			{ slug: 'exceptions', label: 'Exceptions' },
+			{ slug: 'generics-lambdas', label: 'Generics and Lambdas' },
+			{ slug: 'querying-collections', label: 'Querying Collections' },
+			{ slug: 'files', label: 'Files and Cleanup' },
 			{ slug: 'async', label: 'async / await' },
 		],
 	},
 	{
-		label: 'Araçlar ve Pratik',
+		label: 'Tools & Practice',
 		chapters: [
-			{ slug: 'hata-ayiklama-test', label: 'Hata Ayıklama ve Test' },
-			{ slug: 'yapay-zeka', label: 'Yapay Zekâ ile Öğrenmek' },
+			{ slug: 'debugging-testing', label: 'Debugging and Testing' },
+			{ slug: 'learning-with-ai', label: 'Learning with AI' },
 		],
 	},
 ];
 
-/** Kenar çubuğunda ayrı durur; ilerleme listesine girmez. */
+/** Listed separately in the sidebar; not part of the progress checklist. */
 export const extraPages = [
-	{ slug: 'ekler', label: 'Ekler' },
-	{ slug: 'kopya-kagidi', label: 'Kopya Kâğıdı' },
+	{ slug: 'appendices', label: 'Appendices' },
+	{ slug: 'cheat-sheet', label: 'Cheat Sheet' },
 ];
 
-/** Bölüm numarası (1'den başlar), içerik belgesindeki numaralandırmayla aynı. */
+/** Chapter number (from 1), matching the numbering in docs/content-spec.md. */
 export const allChapters = chapterGroups
 	.flatMap((g) => g.chapters)
 	.map((c, i) => ({ ...c, number: i + 1 }));

@@ -1,34 +1,60 @@
 ---
-// "Çıktıyı tahmin et" alıştırması. Cevap <details> içinde saklıdır; JavaScript
-// gerekmez. İçerideki slot açıklamadır.
-// Kullanım:
-//   <Predict id="turler/tahmin-byte">
-//     `byte` 255'ten sonra 0'a sarar, çünkü ...
-//   </Predict>
+// "Predict the output" exercise. The answer is inside <details>, so it works
+// without JavaScript. The slot is the explanation.
+//
+// One language:   <Predict id="operators/modulo" lang="py">…</Predict>
+// Both languages: <Predict id="operators/modulo">…</Predict>
+//   (C# and Python side by side; the answer reveals both outputs — ideal for
+//    cases where the two languages disagree)
 import { Code } from '@astrojs/starlight/components';
 import Outputs from './Outputs.astro';
-import { getCode, getSample } from './lib/samples';
+import { codeTitle, getCode, getSample, LANGS, type Lang } from './lib/samples';
 
 interface Props {
 	id: string;
+	/** Omit to show both languages. */
+	lang?: Lang;
 	file?: string;
 	region?: string;
-	/** Soru metni (varsayılan: "Bu program ne yazdırır?"). */
+	/** Question text (default: "What does this program print?"). */
 	question?: string;
 }
 
-const { id, file = 'Program.cs', region, question = 'Bu program ne yazdırır?' } = Astro.props;
-const sample = getSample(id);
-const code = getCode(id, file, region);
+const { id, lang, file, region } = Astro.props;
+const langs: Lang[] = lang ? [lang] : ['cs', 'py'];
+const both = langs.length === 2;
+const question = Astro.props.question ?? (both ? 'What does each program print?' : 'What does this program print?');
+const sides = langs.map((l) => ({
+	lang: l,
+	sample: getSample(id, l),
+	code: getCode(id, l, file, region),
+}));
 ---
 
-<section class="cs-predict" aria-label="Çıktıyı tahmin et">
+<section class="cs-predict" aria-label="Predict the output">
 	<p class="cs-predict__question">{question}</p>
-	<Code code={code} lang="csharp" />
+	<div class="cs-predict__row">
+		{
+			sides.map((s) => (
+				<div class="cs-predict__side" data-lang={s.lang}>
+					<Code code={s.code} lang={LANGS[s.lang].codeLang} title={both ? codeTitle(s.lang, file) : undefined} />
+				</div>
+			))
+		}
+	</div>
 	<details class="cs-predict__answer">
-		<summary>Cevabı göster</summary>
+		<summary>Show answer</summary>
 		<div class="cs-predict__content">
-			<Outputs sample={sample} />
+			<div class="cs-predict__row">
+				{
+					sides.map((s) => (
+						<div class="cs-predict__side" data-lang={s.lang}>
+							{both && <p class="cs-predict__lang">{LANGS[s.lang].name}</p>}
+							<Outputs sample={s.sample} partialCode={Boolean(region)} />
+						</div>
+					))
+				}
+			</div>
 			{Astro.slots.has('default') && <div class="cs-predict__explain"><slot /></div>}
 		</div>
 	</details>

@@ -1,0 +1,31 @@
+---
+// Internal building block: one language's code frame (with its "C# · Program.cs"
+// title) and, optionally, its verified outputs. Used by Sample, Pair, Mistake,
+// Compare and Predict.
+import { Code } from '@astrojs/starlight/components';
+import Outputs from './Outputs.astro';
+import { codeTitle, getCode, getSample, LANGS, type Lang } from './lib/samples';
+
+interface Props {
+	id: string;
+	lang: Lang;
+	file?: string;
+	region?: string;
+	title?: string;
+	output?: boolean;
+	/** Lines to highlight, e.g. "3" or "{2-4}" (Expressive Code syntax). */
+	mark?: string;
+}
+
+const { id, lang, file, region, title, output = true, mark } = Astro.props;
+const sample = getSample(id, lang);
+const code = getCode(id, lang, file, region);
+---
+
+<Code
+	code={code}
+	lang={LANGS[lang].codeLang}
+	title={title ?? codeTitle(lang, file)}
+	meta={mark ? `mark=${mark}` : undefined}
+/>
+{output && <Outputs sample={sample} partialCode={Boolean(region)} />}

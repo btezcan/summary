@@ -1,19 +1,30 @@
-// samples/ klasöründeki doğrulanmış örnekleri derleme zamanında okur.
-// Sayfalardaki kod ve çıktı her zaman buradan gelir; elle kopyalanmaz.
-// Olmayan ya da doğrulanmamış bir örneğe başvurulursa site derlemesi hata verir.
+// Reads the verified samples in samples/ at build time. Code and output on every
+// page come from here; nothing is copied by hand. Referencing a sample that doesn't
+// exist, or hasn't been verified, fails the site build.
+//
+// Layout: samples/<chapter>/<example>/cs/ and samples/<chapter>/<example>/py/
 
 const files = import.meta.glob<string>(
-	['/samples/**/*.{cs,txt,json}', '!/samples/**/{bin,obj}/**'],
+	['/samples/**/*.{cs,py,txt,json}', '!/samples/**/{bin,obj,__pycache__}/**'],
 	{ query: '?raw', import: 'default', eager: true },
 );
 
+export type Lang = 'cs' | 'py';
 export type Expect = 'run' | 'compile-error' | 'exception' | 'test';
+
+export const LANGS: Record<Lang, { name: string; mainFile: string; codeLang: string; comment: string }> = {
+	cs: { name: 'C#', mainFile: 'Program.cs', codeLang: 'csharp', comment: '//' },
+	py: { name: 'Python', mainFile: 'main.py', codeLang: 'python', comment: '#' },
+};
 
 export interface Sample {
 	id: string;
+	lang: Lang;
 	expect: Expect;
 	culture: boolean;
+	wide: boolean;
 	langVersion?: string;
+	minPython?: string;
 	input?: string;
 	output?: string;
 	error?: string;
@@ -26,61 +37,77 @@ export interface OutputBlock {
 	text: string;
 }
 
-function read(id: string, name: string): string | undefined {
-	return files[`/samples/${id}/${name}`];
+function read(id: string, lang: Lang, name: string): string | undefined {
+	return files[`/samples/${id}/${lang}/${name}`];
 }
 
-export function getSample(id: string): Sample {
-	const hasCode = Object.keys(files).some((k) => k.startsWith(`/samples/${id}/`) && k.endsWith('.cs'));
-	if (!hasCode) throw new Error(`Örnek bulunamadı: samples/${id}/`);
+export function hasSample(id: string, lang: Lang): boolean {
+	const ext = lang === 'cs' ? '.cs' : '.py';
+	return Object.keys(files).some((k) => k.startsWith(`/samples/${id}/${lang}/`) && k.endsWith(ext));
+}
 
-	const json = read(id, 'sample.json');
+export function getSample(id: string, lang: Lang): Sample {
+	if (!hasSample(id, lang)) throw new Error(`Sample not found: samples/${id}/${lang}/`);
+
+	const json = read(id, lang, 'sample.json');
 	const opts = json ? JSON.parse(json) : {};
 	const sample: Sample = {
 		id,
+		lang,
 		expect: opts.expect ?? 'run',
 		culture: opts.culture ?? false,
+		wide: opts.wide ?? false,
 		langVersion: opts.langVersion,
-		input: read(id, 'input.txt'),
-		output: read(id, 'expected-output.txt'),
-		error: read(id, 'expected-error.txt'),
-		warnings: read(id, 'expected-warnings.txt'),
+		minPython: opts.minPython,
+		input: read(id, lang, 'input.txt'),
+		output: read(id, lang, 'expected-output.txt'),
+		error: read(id, lang, 'expected-error.txt'),
+		warnings: read(id, lang, 'expected-warnings.txt'),
 	};
 
 	const needsOutput = (sample.expect === 'run' && !opts.buildOnly) || sample.expect === 'exception';
 	const needsError = sample.expect === 'compile-error' || sample.expect === 'exception';
 	if ((needsOutput && sample.output === undefined) || (needsError && sample.error === undefined)) {
 		throw new Error(
-			`Örnek doğrulanmamış: samples/${id}/ — "npm run verify -- --filter ${id} --update" çalıştırıp çıktıyı kontrol edin.`,
+			`Sample not verified: samples/${id}/${lang}/ — run "npm run verify -- --filter ${id}/${lang} --update" and check the output.`,
 		);
 	}
 	return sample;
 }
 
-/** Örneğin kaynak dosyası. `region` verilirse yalnızca "// #region ad" ile "// #endregion" arası. */
-export function getCode(id: string, file = 'Program.cs', region?: string): string {
-	const code = read(id, file);
-	if (code === undefined) throw new Error(`Dosya bulunamadı: samples/${id}/${file}`);
-	return region ? extractRegion(code, region, `samples/${id}/${file}`) : stripRegionMarkers(code);
+/** A sample's source file. With `region`, only the part between "region name" and "endregion" comments. */
+export function getCode(id: string, lang: Lang, file?: string, region?: string): string {
+	const name = file ?? LANGS[lang].mainFile;
+	const code = read(id, lang, name);
+	if (code === undefined) throw new Error(`File not found: samples/${id}/${lang}/${name}`);
+	const where = `samples/${id}/${lang}/${name}`;
+	return region ? extractRegion(code, lang, region, where) : stripRegionMarkers(code, lang);
 }
 
-const REGION_START = /^\s*\/\/\s*#region\b\s*(.*)$/;
-const REGION_END = /^\s*\/\/\s*#endregion\b/;
+function markers(lang: Lang) {
+	const c = LANGS[lang].comment === '//' ? '\\/\\/' : '#';
+	return {
+		start: new RegExp(`^\\s*${c}\\s*#?region\\b\\s*(.*)$`),
+		end: new RegExp(`^\\s*${c}\\s*#?endregion\\b`),
+	};
+}
 
-function extractRegion(code: string, name: string, where: string): string {
+function extractRegion(code: string, lang: Lang, name: string, where: string): string {
+	const { start: START, end: END } = markers(lang);
 	const lines = code.replace(/\r\n/g, '\n').split('\n');
-	const start = lines.findIndex((l) => REGION_START.exec(l)?.[1].trim() === name);
-	if (start < 0) throw new Error(`Bölge bulunamadı: "${name}" (${where})`);
-	const end = lines.findIndex((l, i) => i > start && REGION_END.test(l));
-	if (end < 0) throw new Error(`Bölge kapatılmamış: "${name}" (${where})`);
-	return dedent(stripRegionMarkers(lines.slice(start + 1, end).join('\n')));
+	const start = lines.findIndex((l) => START.exec(l)?.[1].trim() === name);
+	if (start < 0) throw new Error(`Region not found: "${name}" (${where})`);
+	const end = lines.findIndex((l, i) => i > start && END.test(l));
+	if (end < 0) throw new Error(`Region not closed: "${name}" (${where})`);
+	return dedent(stripRegionMarkers(lines.slice(start + 1, end).join('\n'), lang));
 }
 
-function stripRegionMarkers(code: string): string {
+function stripRegionMarkers(code: string, lang: Lang): string {
+	const { start: START, end: END } = markers(lang);
 	return code
 		.replace(/\r\n/g, '\n')
 		.split('\n')
-		.filter((l) => !REGION_START.test(l) && !REGION_END.test(l))
+		.filter((l) => !START.test(l) && !END.test(l))
 		.join('\n')
 		.replace(/\n{3,}/g, '\n\n')
 		.trim();
@@ -93,20 +120,28 @@ function dedent(code: string): string {
 	return lines.map((l) => l.slice(min)).join('\n');
 }
 
-/** Bir örnek için gösterilecek çıktı blokları: uyarılar, hata, program çıktısı. */
+/** The output blocks shown for a sample: warnings, errors, program output. */
 export function outputBlocks(sample: Sample): OutputBlock[] {
 	const blocks: OutputBlock[] = [];
 	const trim = (s: string) => s.replace(/\s+$/, '');
-	if (sample.warnings) blocks.push({ variant: 'warning', label: 'Derleyici uyarısı', text: trim(sample.warnings) });
+	const warningLabel = sample.lang === 'cs' ? 'Compiler warning' : 'Warning';
+	if (sample.warnings) blocks.push({ variant: 'warning', label: warningLabel, text: trim(sample.warnings) });
 	if (sample.expect === 'compile-error') {
-		blocks.push({ variant: 'compile-error', label: 'Derleme hatası', text: trim(sample.error!) });
+		const label = sample.lang === 'cs' ? 'Compile error' : 'Syntax error';
+		blocks.push({ variant: 'compile-error', label, text: trim(sample.error!) });
 		return blocks;
 	}
 	if (sample.output !== undefined && (sample.expect === 'run' || trim(sample.output))) {
-		blocks.push({ variant: 'output', label: 'Çıktı', text: trim(sample.output) });
+		blocks.push({ variant: 'output', label: 'Output', text: trim(sample.output) });
 	}
 	if (sample.expect === 'exception') {
-		blocks.push({ variant: 'exception', label: 'Çalışma zamanı hatası', text: trim(sample.error!) });
+		const label = sample.lang === 'cs' ? 'Runtime error' : 'Traceback';
+		blocks.push({ variant: 'exception', label, text: trim(sample.error!) });
 	}
 	return blocks;
+}
+
+/** Code frame title, e.g. "C# · Program.cs" or "Python · main.py". */
+export function codeTitle(lang: Lang, file?: string): string {
+	return `${LANGS[lang].name} · ${file ?? LANGS[lang].mainFile}`;
 }
