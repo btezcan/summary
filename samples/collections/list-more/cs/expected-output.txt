@@ -1,0 +1,5 @@
+Zeynep, Can, Ali, Ayşe
+True
+2
+Can, Ali, Ayşe
+Can, Ali

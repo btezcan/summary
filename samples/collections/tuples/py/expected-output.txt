@@ -1,0 +1,3 @@
+Ayşe
+('Ayşe', 92)
+Ayşe scored 92

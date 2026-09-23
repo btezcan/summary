@@ -866,6 +866,10 @@
 		display: block;
 	}
 
+	.cs-compare--table caption {
+		display: block;
+	}
+
 	.cs-compare--table thead {
 		position: absolute;
 		width: 1px;

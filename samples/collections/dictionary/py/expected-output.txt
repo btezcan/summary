@@ -1,0 +1,6 @@
+3
+True
+no Zeynep
+Ali: 20
+Ayşe: 22
+Can: 19

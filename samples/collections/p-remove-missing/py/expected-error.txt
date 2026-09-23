@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "main.py", line 2, in <module>
+    names.remove("Can")
+    ~~~~~~~~~~~~^^^^^^^
+ValueError: list.remove(x): x not in list

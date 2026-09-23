@@ -1,0 +1,3 @@
+apple fig kiwi pear
+fig kiwi pear apple
+pear kiwi fig apple

@@ -1,5 +1,298 @@
 ---
-title: "Arrays and Collections"
+title: Arrays and Collections
+description: Arrays and lists, sorting, dictionaries, sets, queues and stacks, tuples, and how to choose a collection — in C# and Python side by side.
 ---
 
-This chapter is being written.
+import { Pair, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- C# has fixed-size **arrays** (`int[]`) and growable **lists** (`List<T>`).
+  Python's built-in **`list`** grows as needed and plays both roles.
+- **Dictionaries** map keys to values: `Dictionary<TKey, TValue>` ↔ `dict`.
+  Python keeps insertion order (guaranteed); C# does **not** promise any order.
+- **Sets** hold unique items (`HashSet<T>` ↔ `set`); **queues** and **stacks**
+  are `Queue<T>` / `Stack<T>` ↔ `collections.deque` / `list`.
+- Removing items from a list **while looping over it** throws in C# but
+  **silently skips items** in Python. Build a new list instead.
+- Choose by the question you ask most often: "item at position *i*?" → list;
+  "value for key *k*?" → dictionary; "have I seen *x*?" → set.
+
+## Concept
+
+### Arrays and lists
+
+A C# **array** has a fixed length, set when it is created; its elements start
+at their default value (`0`, `false`, `null`). A **`List<T>`** grows as you add
+items. Python has no fixed-size array in the core language: its `list` grows,
+shrinks and can hold values of any type (though a list of one type is the
+norm).
+
+<Pair id="collections/arrays">
+  Both index from `0`, and both can count from the end: `names[^1]` (C#) and
+  `names[-1]` (Python). Arrays have `Length`; lists have `Count` in C# and
+  `len()` in Python.
+</Pair>
+
+<Pair id="collections/list-basics">
+  `Add` / `append`, `Remove` / `remove` and `Sort` / `sort` map one to one.
+  Python prints a list directly; C# needs `string.Join` for readable output.
+</Pair>
+
+<Pair id="collections/list-more">
+  Python's `del names[0]` removes by position, like `RemoveAt`. A **slice**
+  `names[0:2]` copies part of a list; C#'s `GetRange(0, 2)` does the same (and
+  arrays support ranges, `array[0..2]`).
+</Pair>
+
+### Sorting
+
+`list.sort()` / `List.Sort()` sort **in place** and return nothing. Python's
+`sorted(...)` and C#'s LINQ `OrderBy(...)` return a **new** sorted sequence and
+leave the original alone.
+
+<Pair id="collections/sorting">
+  Python sorts by a **key** (`key=len`); C#'s `Sort` takes a **comparison**
+  (`(a, b) => …`). Python's sort is **stable**: items that compare equal keep
+  their order (`kiwi` before `pear`). `List.Sort` does not promise that; LINQ's
+  `OrderBy` does.
+</Pair>
+
+### Dictionaries
+
+A dictionary stores **key → value** pairs and finds a value by its key in about
+constant time, however many entries there are.
+
+<Pair id="collections/dictionary">
+  `TryGetValue` and `get` both avoid an error for a missing key. Both loops
+  happen to print in insertion order here, but only Python **guarantees** it; a
+  C# `Dictionary` can reorder entries after removals, so don't rely on its order.
+</Pair>
+
+### Two dimensions
+
+C# has true **rectangular arrays** (`int[,]`) and **jagged arrays**
+(`int[][]`, an array of arrays whose rows may differ in length). Python uses a
+list of lists, which is jagged by nature.
+
+<Pair id="collections/matrix">
+  `grid[1, 2]` (C#, one index pair) versus `grid[1][2]` (row, then item). For
+  serious numeric work in Python, the `numpy` library provides real
+  multi-dimensional arrays.
+</Pair>
+
+### Sets, queues and stacks
+
+<Pair id="collections/set-queue-stack">
+  `HashSet.Add` returns `false` for a duplicate; Python's `set.add` returns
+  nothing and simply ignores it. Use `deque` for a queue in Python:
+  `list.pop(0)` works but gets slow for long lists, because every remaining
+  item moves.
+</Pair>
+
+Python's set operators make set algebra short:
+
+<Pair id="collections/set-operations">
+  Both print sorted results on purpose: a set has no order, and Python's
+  iteration order can even change between runs. C# needs a new set per
+  operation (or LINQ's `Intersect` / `Union`), which is why the C# side is longer.
+</Pair>
+
+### Collection literals
+
+<Pair id="collections/collection-expressions">
+  C#'s **collection expressions** `[1, 2, 3]` and the **spread** `..` look like
+  Python's list literals and `*` unpacking.
+</Pair>
+
+<Note type="version" version="C# 12">
+  Collection expressions are new in C# 12. Older code writes
+  `new[] { 1, 2, 3 }` or `new List<int> { 4, 5 }`, as in the other examples.
+</Note>
+
+### Tuples
+
+<Pair id="collections/tuples">
+  A tuple groups a few values without defining a type. C# tuples can name their
+  elements (`best.Name`); Python tuples are indexed (`best[0]`) and
+  **immutable**. For anything with more than two or three fields, use a record
+  or dataclass (chapter 9).
+</Pair>
+
+### Choosing a collection
+
+<Compare
+  caption="Which collection?"
+  headers={['You need…', 'C#', 'Python']}
+  rows={[
+    ['A fixed number of items', '`T[]` array', '`list` (or `tuple` if it never changes)'],
+    ['An ordered, growable sequence', '`List<T>`', '`list`'],
+    ['Lookup by key', '`Dictionary<TKey, TValue>`', '`dict`'],
+    ['Unique items, "seen it?" checks', '`HashSet<T>`', '`set`'],
+    ['First in, first out', '`Queue<T>`', '`collections.deque`'],
+    ['Last in, first out', '`Stack<T>`', '`list` (`append` / `pop`)'],
+    ['A few related values', 'tuple `(string, int)`', '`tuple`'],
+    ['Counting occurrences', '`Dictionary<T, int>`', '`collections.Counter`'],
+  ]}
+/>
+
+<Compare
+  caption="How fast are common operations? (the same in both languages)"
+  headers={['Operation', 'List / list', 'Dictionary / dict, set']}
+  rows={[
+    ['Get item by position', 'fast — O(1)', '—'],
+    ['Find a value (`Contains`, `in`)', 'slow — O(n), checks every item', 'fast — O(1) on average'],
+    ['Add at the end', 'fast — O(1) on average', 'fast — O(1) on average'],
+    ['Insert or remove at the front', 'slow — O(n)', '—'],
+  ]}
+/>
+
+O(n) means the time grows with the number of items. Checking `x in items` for a
+list of a million names looks at up to a million entries; in a set, it's one
+hash lookup.
+
+## Examples
+
+### Counting words
+
+<Pair id="collections/word-count">
+  The classic dictionary pattern: read the current count (or 0), add one.
+  Python's `Counter` does the whole job in one line and can report the most
+  common items.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Changing a list inside foreach" wrong="collections/m-modify-foreach" right="collections/m-modify-foreach-fixed">
+  A `foreach` loop may not add or remove items. Use `RemoveAll`, loop backwards
+  with an index, or build a new list.
+</Mistake>
+
+<Mistake lang="py" title="Removing items while looping" wrong="collections/m-remove-while-iterating" right="collections/m-remove-while-iterating-fixed">
+  Python doesn't stop you. Removing an item shifts the rest left, so the loop
+  skips the element right after it — here, the second `2`. The C# version of this
+  code at least throws; this one produces a wrong answer quietly.
+</Mistake>
+
+<Mistake lang="cs" title="Reading a missing key" wrong="collections/m-missing-key" right="collections/m-missing-key-fixed">
+  The indexer throws `KeyNotFoundException`; Python's `d["Zeynep"]` raises
+  `KeyError`. Use `TryGetValue` / `get` when a key may be missing.
+</Mistake>
+
+<Mistake lang="cs" title="Length on a List" wrong="collections/m-length-count" right="collections/m-length-count-fixed">
+  Arrays have `Length`, collections have `Count`. Python has one answer for
+  everything: `len(x)`.
+</Mistake>
+
+<Mistake lang="py" title="Multiplying a list of lists" wrong="collections/m-grid-alias" right="collections/m-grid-alias-fixed">
+  `[[0] * 3] * 2` repeats a reference to the **same** row. Build each row
+  separately with a comprehension.
+</Mistake>
+
+<Mistake lang="py" title="Keeping the result of sort()" wrong="collections/m-sort-none" right="collections/m-sort-none-fixed">
+  `sort()` sorts in place and returns `None`. Use `sorted()` for a new list. In C#
+  the equivalent line doesn't compile, because `Sort()` returns `void`.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="collections/p-copy">
+  `b = a` copies the reference: one list, two names. `new List<int>(a)` and
+  `list(a)` create an independent copy, so `c` still has two items.
+</Predict>
+
+<Predict id="collections/p-remove-missing">
+  `List.Remove` reports failure by returning `false`. Python's `remove` raises
+  `ValueError`; check with `in` first, or catch the error.
+</Predict>
+
+<Predict id="collections/p-set-bool" lang="py">
+  A set keeps one of each **equal** value, and in Python `1 == 1.0 == True`. So
+  the set holds `1` and `2`: length 2.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'What does this Python program print?',
+    sample: 'collections/q-slice',
+    lang: 'py',
+    options: ['`[20, 30]` and `[40, 50]`', '`[20, 30, 40]` and `[50]`', '`[10, 20]` and `[40, 50]`', '`[20, 30]` and `[50]`'],
+    answer: 0,
+    explanation: 'A slice stops before its end index, and negative indexes count from the end: `nums[-2:]` is the last two items.',
+  },
+  {
+    question: 'Which C# collection matches Python\'s `dict`?',
+    options: ['`List<T>`', '`Dictionary<TKey, TValue>`', '`HashSet<T>`', '`Tuple<T1, T2>`'],
+    answer: 1,
+    explanation: 'Both map keys to values with fast lookup. `HashSet<T>` matches Python\'s `set`.',
+  },
+  {
+    question: 'You loop over a Python list and remove every even number with `remove`. What happens?',
+    options: [
+      'An exception, like in C#',
+      'All even numbers are removed',
+      'Some even numbers may be skipped and stay in the list',
+      'The list is copied automatically',
+    ],
+    answer: 2,
+    explanation: 'Each removal shifts the remaining items, so the loop skips one. Build a new list with a comprehension instead.',
+  },
+  {
+    question: 'You need to check many times whether a student number has been seen. What should you use?',
+    options: ['A `List<int>` / `list`', 'A `HashSet<int>` / `set`', 'An array', 'A `Queue<int>` / `deque`'],
+    answer: 1,
+    explanation: 'A set answers "is x in here?" in about constant time. A list has to look at every item.',
+  },
+  {
+    question: 'Which statement about iteration order is true?',
+    options: [
+      'Both C# `Dictionary` and Python `dict` guarantee insertion order',
+      'Only Python `dict` guarantees insertion order',
+      'Neither has any order',
+      'Only C# `Dictionary` guarantees insertion order',
+    ],
+    answer: 1,
+    explanation: 'Python guarantees insertion order for `dict` (since 3.7). C#\'s `Dictionary` often looks ordered, but the documentation makes no promise.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Create a list', '`var xs = new List<int> { 1, 2 };`', '`xs = [1, 2]`'],
+    ['Fixed-size array', '`var a = new int[3];`', '`a = [0] * 3`'],
+    ['Add / insert', '`xs.Add(3)`, `xs.Insert(0, 9)`', '`xs.append(3)`, `xs.insert(0, 9)`'],
+    ['Remove value / position', '`xs.Remove(3)`, `xs.RemoveAt(0)`', '`xs.remove(3)`, `del xs[0]`'],
+    ['Size', '`xs.Count` (array: `Length`)', '`len(xs)`'],
+    ['Contains', '`xs.Contains(3)`', '`3 in xs`'],
+    ['Last item', '`xs[^1]`', '`xs[-1]`'],
+    ['Part of a list', '`xs.GetRange(1, 2)`', '`xs[1:3]`'],
+    ['Sort in place / copy', '`xs.Sort()` / `xs.OrderBy(x => x)`', '`xs.sort()` / `sorted(xs)`'],
+    ['Dictionary', '`new Dictionary<string, int> { ["a"] = 1 }`', '`{"a": 1}`'],
+    ['Safe lookup', '`d.TryGetValue(k, out var v)`', '`d.get(k, default)`'],
+    ['Loop over pairs', '`foreach (var (k, v) in d)`', '`for k, v in d.items():`'],
+    ['Set', '`new HashSet<int>()`', '`set()`'],
+    ['Queue / stack', '`Queue<T>`, `Stack<T>`', '`deque`, `list`'],
+    ['Copy a list', '`new List<int>(xs)`', '`list(xs)`, `xs.copy()`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "I need to store students and look them up by number, then list them sorted by
+  name. Which C# and Python collections should I use and why? Don't write the
+  program."
+- "Show me three ways to remove items from a list while looping, in C# and in
+  Python. Which ones are wrong, and how does each language react?"
+
+<Note type="warning" title="Verify it yourself">
+  AI code sometimes relies on dictionary order in C#, or prints a Python `set`
+  and expects a fixed order. Run such code twice, change the input order, and
+  check that the output still makes sense.
+</Note>
