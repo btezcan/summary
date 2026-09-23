@@ -1,0 +1,6 @@
+7
+  parsed 7
+  done
+x
+  bad input
+  done

@@ -1,5 +1,250 @@
 ---
-title: "Exceptions"
+title: Exceptions
+description: try/catch/finally and try/except/else/finally, reading stack traces and tracebacks, exception types, rethrowing and chaining, custom exceptions, filters, and when to use exceptions at all.
 ---
 
-This chapter is being written.
+import { Pair, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- An **exception** stops normal execution and jumps to the nearest matching
+  handler: `catch` (C#) / `except` (Python). `finally` runs in every case.
+- Catch **specific** exception types, most specific first. Never swallow
+  exceptions with an empty `catch { }` or a bare `except:`.
+- **.NET stack traces list the most recent call first; Python tracebacks list it
+  last** — read a Python traceback from the bottom up.
+- `throw;` / bare `raise` re-throws the current exception; `throw new X(..., e)`
+  and `raise X(...) from e` **chain** a new exception to the original.
+- Style differs: C# prefers checking first (**LBYL**: `TryParse`,
+  `TryGetValue`); Python often just tries and catches (**EAFP**).
+
+## Concept
+
+### try, catch / except, finally
+
+When an exception is raised, the rest of the `try` block is skipped and the first
+handler that matches the exception's type runs. `finally` runs afterwards
+whether or not anything went wrong — the place for cleanup.
+
+<Pair id="exceptions/try-catch">
+  Same structure, different words: `catch (IndexOutOfRangeException e)` ↔
+  `except IndexError as e`. The messages differ too, so don't compare exception
+  *messages* in your code; compare *types*.
+</Pair>
+
+Python adds an `else` block: it runs only when the `try` block raised nothing.
+Keeping the success path out of `try` means an error in that code isn't caught
+by the wrong handler by accident.
+
+<Pair id="exceptions/else-finally">
+  Same output. In Python, `print(f"  parsed {n}")` sits in `else`, outside the
+  protected region; in C# it has to stay inside `try`. `finally` runs in both
+  cases, for both inputs.
+</Pair>
+
+### Reading a stack trace and a traceback
+
+An uncaught exception prints the **call stack**: which functions were running
+when it happened. The two languages print it in opposite orders.
+
+<Pair id="exceptions/trace-order">
+  C# (printed here from the caught exception, keeping only our own methods) puts
+  the method that failed, `ParseAge`, **first**. Python's traceback says "most
+  recent call last": the failing line, `int(text)`, is at the **bottom**, just
+  above the error message. Start reading where the useful information is: the
+  top in C#, the bottom in Python.
+</Pair>
+
+### Handling several kinds of errors
+
+<Pair id="exceptions/specific-first">
+  Each handler catches one kind of problem and says something useful about it.
+  The handlers are tried in order, so put specific types before general ones —
+  C# enforces that, Python doesn't (see Common Mistakes).
+</Pair>
+
+<Compare
+  caption="Common exception types"
+  headers={['Situation', 'C#', 'Python']}
+  rows={[
+    ['Text is not a number', '`FormatException`', '`ValueError`'],
+    ['Index out of range', '`IndexOutOfRangeException` (arrays), `ArgumentOutOfRangeException` (lists)', '`IndexError`'],
+    ['Missing dictionary key', '`KeyNotFoundException`', '`KeyError`'],
+    ['Using null / None', '`NullReferenceException`', '`AttributeError`, `TypeError`'],
+    ['Bad argument value', '`ArgumentException`, `ArgumentOutOfRangeException`', '`ValueError`'],
+    ['Wrong type', '`InvalidCastException`', '`TypeError`'],
+    ['Object in the wrong state', '`InvalidOperationException`', '`RuntimeError` (or a custom error)'],
+    ['Division by zero', '`DivideByZeroException` (integers only)', '`ZeroDivisionError` (ints and floats)'],
+    ['File not found', '`FileNotFoundException`', '`FileNotFoundError`'],
+    ['Base of normal errors', '`Exception`', '`Exception`'],
+  ]}
+/>
+
+### Raising, re-raising and chaining
+
+`throw new X(...)` / `raise X(...)` start an exception. Inside a handler,
+`throw;` (C#) or a bare `raise` (Python) re-throws the **same** exception with
+its original stack trace. In C#, `throw e;` would restart the trace at that line
+and hide where the error came from — avoid it.
+
+When you translate a low-level error into a higher-level one, keep the original
+as the **cause**:
+
+<Pair id="exceptions/chaining">
+  `InnerException` (C#) and `__cause__` (Python) point to the original error.
+  Python's traceback prints both, joined by "The above exception was the direct
+  cause of the following exception".
+</Pair>
+
+### Custom exceptions
+
+Define your own exception type when callers need to handle one specific
+situation. Derive from `Exception` in both languages; the naming convention is
+`...Exception` in C# and `...Error` in Python.
+
+<Pair id="exceptions/custom">
+  The custom type carries data (`Missing` / `missing`) along with the message,
+  so the caller can react without parsing text.
+</Pair>
+
+### Exception filters (C#)
+
+<Pair id="exceptions/filters">
+  C#'s `when (…)` decides whether a `catch` applies at all; if the condition is
+  false, the next handler is tried. Python writes the condition inside one
+  `except` block; to pass the exception on, it would `raise` again.
+</Pair>
+
+## Examples
+
+### Division by zero: the languages disagree
+
+<Pair id="exceptions/divide-by-zero">
+  C# follows the IEEE floating-point rules: `1.0 / 0` is `Infinity`, and only
+  **integer** division by zero throws. Python raises `ZeroDivisionError` for
+  both; if you want infinity, write `math.inf`.
+</Pair>
+
+### Ask permission or ask forgiveness
+
+<Pair id="exceptions/eafp-lbyl">
+  **LBYL** ("look before you leap") checks first; **EAFP** ("easier to ask
+  forgiveness than permission") tries and handles the failure. C# APIs are built
+  for LBYL (`TryParse`, `TryGetValue`) because exceptions are relatively
+  expensive in .NET. Python code commonly uses EAFP. Either way, exceptions are
+  for **exceptional** situations, not the normal path through a loop.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="An empty catch block" wrong="exceptions/m-swallow" right="exceptions/m-swallow-fixed">
+  `"2O"` has the letter O instead of a zero. The empty `catch` hides the problem,
+  and the total is silently wrong. Handle the case you expect, and let
+  everything else surface.
+</Mistake>
+
+<Mistake lang="cs" title="A general catch before a specific one" wrong="exceptions/m-catch-order" right="exceptions/m-catch-order-fixed">
+  `catch (Exception)` catches everything, so the `FormatException` handler could
+  never run. C# reports this as an error (CS0160).
+</Mistake>
+
+<Mistake lang="py" title="A bare except" wrong="exceptions/m-bare-except" right="exceptions/m-bare-except-fixed">
+  The typo `bonus` raises `NameError`, and the bare `except:` catches it — along
+  with everything else, even Ctrl+C (`KeyboardInterrupt`). The program prints
+  `0` and hides the bug. mypy still reports the undefined name.
+</Mistake>
+
+<Mistake lang="py" title="A general except before a specific one" wrong="exceptions/m-except-order" right="exceptions/m-except-order-fixed">
+  Python accepts this order, but `except Exception` also matches `ValueError`, so
+  the specific handler never runs. C# would refuse to compile it.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="exceptions/p-flow">
+  After `A` is printed, parsing fails, so `B` is skipped and the handler prints
+  `C`. The exception is handled, so the program continues normally with `D`.
+</Predict>
+
+<Predict id="exceptions/p-finally-return">
+  `return` doesn't skip `finally`: the return value is computed, `finally` runs
+  and prints its line, and only then does the caller receive `"from try"`.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'Where do you find the line that failed in a Python traceback?',
+    options: ['At the top', 'At the bottom, just above the error message', 'In the middle', 'It isn\'t shown'],
+    answer: 1,
+    explanation: 'Python prints "most recent call last". A .NET stack trace is the other way round: the failing method is listed first.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'exceptions/q-else',
+    lang: 'py',
+    options: ['`error` then `end`', '`ok 5` then `end`', '`ok 5` only', '`end` only'],
+    answer: 1,
+    explanation: 'Parsing succeeds, so `except` is skipped and `else` runs. `finally` always runs.',
+  },
+  {
+    question: 'What does `Console.WriteLine(1.0 / 0);` print in C#?',
+    options: ['`0`', '`Infinity`', 'It throws `DivideByZeroException`', 'It doesn\'t compile'],
+    answer: 1,
+    explanation: 'Floating-point division by zero gives infinity in C#. Only integer division throws. Python raises `ZeroDivisionError` for both.',
+  },
+  {
+    question: 'Which statement re-throws the current exception and keeps its original stack trace in C#?',
+    options: ['`throw e;`', '`throw;`', '`throw new Exception(e.Message);`', '`return e;`'],
+    answer: 1,
+    explanation: 'A bare `throw;` re-throws unchanged. `throw e;` resets the trace. Python\'s bare `raise` behaves like `throw;`.',
+  },
+  {
+    question: 'Why should you avoid a bare `except:` in Python?',
+    options: [
+      'It is a syntax error',
+      'It catches everything, including typos and Ctrl+C, and hides bugs',
+      'It is slower than `except Exception:`',
+      'It only works in functions',
+    ],
+    answer: 1,
+    explanation: 'A bare `except:` catches `NameError` from typos and even `KeyboardInterrupt`. Catch the specific exception you expect.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Handle', '`try { … } catch (FormatException e) { … }`', '`try:` … `except ValueError as e:`'],
+    ['Several types at once', '`catch (Exception e) when (e is A or B)`', '`except (A, B) as e:`'],
+    ['Only if no error', '—', '`else:`'],
+    ['Always run', '`finally { … }`', '`finally:`'],
+    ['Raise', '`throw new ArgumentException("…");`', '`raise ValueError("…")`'],
+    ['Re-raise', '`throw;`', '`raise`'],
+    ['Chain', '`throw new X("…", e);`', '`raise X("…") from e`'],
+    ['Original error', '`e.InnerException`', '`e.__cause__`'],
+    ['Message', '`e.Message`', '`str(e)`'],
+    ['Custom type', '`class MyException : Exception`', '`class MyError(Exception):`'],
+    ['Conditional handler', '`catch (X e) when (cond)`', '`except X as e:` + `if`'],
+    ['Check first', '`int.TryParse(s, out int n)`', '`s.isdigit()` (EAFP is more common)'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Here is a stack trace / traceback from my program. Explain which line failed,
+  how the program got there, and what I should check — without fixing the code."
+- "Show me the same error-handling logic in LBYL and EAFP style, in C# and
+  Python, and explain when each is better."
+
+<Note type="warning" title="Verify it yourself">
+  AI code often wraps whole functions in `try { … } catch (Exception) { }` or
+  `try: … except: pass` so that "it doesn't crash". That hides real bugs. Look
+  for empty handlers and overly broad catches, and ask what should really happen
+  in each error case.
+</Note>
