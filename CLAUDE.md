@@ -1,4 +1,4 @@
-# CLAUDE.md — C# Reference Guide for University Students
+# CLAUDE.md — C# & Python Comparative Reference Guide
 
 This file tells Claude Code how to build and maintain this project. Read it at the
 start of every session. The full chapter-by-chapter content plan is in
@@ -6,13 +6,16 @@ start of every session. The full chapter-by-chapter content plan is in
 
 ## What we are building
 
-A static website that serves as a **summary and reference guide for C#** for
-university students who have already taken (or are taking) an introductory
-programming course. It is not a first-time tutorial. Students come here to:
+A static website that serves as a **comparative summary and reference guide for C#
+and Python** for university students who have already taken (or are taking) an
+introductory programming course. Every concept is taught in **both languages side
+by side**, so students learn the idea once and see how each language expresses it.
+It is not a first-time tutorial. Students come here to:
 
 - review a topic quickly before a lab or exam,
-- look up syntax and common patterns,
-- understand *why* something behaves the way it does,
+- look up syntax and common patterns in either language,
+- understand *why* the two languages behave differently (static vs dynamic typing,
+  fixed-size vs arbitrary-precision integers, value vs reference semantics, …),
 - check themselves with small "predict the output" exercises and quizzes,
 - learn how to use AI assistants without letting them replace their thinking.
 
@@ -21,13 +24,29 @@ reviews content; students only read.
 
 ## Language rules
 
-- Site UI and prose: **Turkish**.
-- On the first use of a technical term on a page, give the English term in
-  parentheses: "değer türü (value type)". Afterwards use one term consistently.
-- Code identifiers (class, method, variable names): **English**
-  (`Student`, `CalculateAverage`). Comments and string literals shown to the
-  user may be Turkish.
+- **Everything is in English**: site UI, prose, code identifiers, code comments,
+  string literals, commit messages, and source-code comments in this repo.
+- Exception: Turkish text may appear *inside samples about locale* (e.g. the Turkish
+  "İ" casing bug, `3,5` vs `3.5`). These stay because the students work on
+  Turkish-locale machines; the explanation around them is in English.
 - Keep sentences short and direct. No filler, no marketing tone, no emojis in prose.
+- On the first use of a term that differs between the languages, name both:
+  "method (C#) / function (Python)", "`null` / `None`".
+
+## Comparative teaching rules
+
+- **C# on the left, Python on the right**, always in that order (`<Pair>`).
+- Teach the *concept* first, then show both languages. Don't teach one language
+  and bolt the other on.
+- Every comparison ends with **what differs and why** (1–3 sentences). Point out
+  where the same-looking code behaves differently (`-7 % 3`, `/` on integers,
+  integer overflow, dictionary order, string upper-casing and culture).
+- When a topic exists in only one language (`struct`, `ref`/`out`, LINQ query
+  syntax; multiple inheritance, `*args`, slicing), write a **"C# only" / "Python
+  only"** note that names the closest idiom in the other language.
+- Write idiomatic code in each language. Never write "C# in Python syntax" or the
+  reverse: Python uses PEP 8 names (`calculate_average`), C# uses .NET names
+  (`CalculateAverage`).
 
 ## Tech stack
 
@@ -39,73 +58,100 @@ reviews content; students only read.
 - No backend, no database, no login. Everything is static.
 - Deploy target: **GitHub Pages** via a GitHub Actions workflow.
 
-## C# version
+## Language versions
 
-- Target **the current .NET LTS SDK** installed on this machine (run
-  `dotnet --version` first; .NET 10 / C# 14 at the time of writing).
-- Teach features up to **C# 12** as the default. If you use a newer feature,
-  label it with the version in a small note.
-- Use modern style: top-level statements for small samples, file-scoped
-  namespaces, `var` where the type is obvious, string interpolation,
-  nullable reference types enabled.
+### C#
+- Target the **current .NET LTS SDK** (.NET 10 at the time of writing; run
+  `dotnet --version` first).
+- Teach features up to **C# 12** by default. `samples/Directory.Build.props` pins
+  `LangVersion` 12, so a newer feature fails to compile unless the sample opts in
+  with `"langVersion"` in `sample.json`; label it on the page with
+  `<Note type="version">`.
+- Modern style: top-level statements for small samples, file-scoped namespaces,
+  `var` where the type is obvious, string interpolation, nullable reference types
+  enabled.
 - Do **not** teach outdated material as current: `ArrayList`, `Hashtable`,
-  destructors as a normal tool, `csc.exe` command-line workflows, Visual
-  Studio .NET–era screenshots. Mention them only as "you may see this in old code".
+  destructors as a normal tool, `csc.exe` command-line workflows, Visual Studio
+  .NET–era screenshots. Mention them only as "old code you may see".
+
+### Python
+- Run samples on **Python 3.14** (current stable). Teach features up to
+  **Python 3.12** by default. The verification script also runs every Python sample
+  on 3.12; a sample that needs a newer version declares `"minPython"` in
+  `sample.json` and gets a `<Note type="version">` on the page.
+- Modern style: f-strings, `pathlib`, type hints where they help the comparison
+  with C# (function signatures, dataclasses), `if __name__ == "__main__":` only when
+  the sample is about modules.
+- Do **not** teach outdated material as current: Python 2 (`print` statement,
+  `raw_input`, `%`-formatting as the default), `os.path` where `pathlib` is
+  clearer. Mention them only as "old code you may see".
+- Students use the official installer or `uv`; don't depend on the macOS/Linux
+  system Python.
 
 ## Correctness is the top priority
 
 This project exists partly because old course slides contained code that did
 not compile and wrong facts. Therefore:
 
-1. **Every code example must compile and run.** Each runnable example lives in
-   `samples/<chapter-slug>/<example-name>/` as its own console project
-   (or a single-file app, if the installed SDK supports `dotnet run file.cs`).
-   The MDX page imports or mirrors that exact code.
-2. **Every "Output" block must be produced by actually running the sample**,
-   never written from memory. Use `scripts/verify-samples` (create it) to run
-   all samples and compare output against stored `expected-output.txt` files.
-3. Run samples with `DOTNET_CLI_UI_LANGUAGE=en` and invariant culture unless the
-   example is *about* culture. When culture matters (decimal separator, Turkish
-   "İ" problem), set the culture explicitly in code and say so on the page.
-4. Numeric facts (type sizes, ranges) must match the official C# documentation.
-   When unsure, write a tiny program to check (`Console.WriteLine(long.MaxValue)`).
-5. Do not invent APIs. If you are not sure a method exists, check it by
-   compiling a sample.
-6. Add a CI job that builds every sample and runs the verification script on
-   every push. The site build must fail if a sample fails.
+1. **Every code example must compile/parse and run.** Each runnable example lives in
+   `samples/<chapter>/<example>/cs/` (a file-based app `Program.cs`, or a project)
+   and/or `samples/<chapter>/<example>/py/main.py`. The MDX page imports that exact
+   code through the components; never copy code into MDX by hand.
+2. **Every "Output" block must be produced by actually running the sample**, never
+   written from memory. `scripts/verify-samples` runs all samples and compares
+   output, compiler errors, exceptions/tracebacks and warnings against stored
+   `expected-*.txt` files.
+3. Samples run with invariant culture (C#) and without a locale (Python) unless the
+   example is *about* locale. When locale matters, set it explicitly in code and say
+   so on the page.
+4. Python output must not depend on hash order: the script runs every Python sample
+   with two different `PYTHONHASHSEED` values and fails if the output differs.
+5. Numeric facts (type sizes, ranges) must match the official documentation.
+   When unsure, write a tiny program to check (`long.MaxValue`, `sys.float_info`).
+6. Do not invent APIs. If you are not sure a method exists, check it by running a
+   sample.
+7. CI builds and runs every sample on every push; the site build fails if a sample
+   fails.
+8. Code lines in samples are at most 48 characters so `<Pair>` fits side by side;
+   a sample that genuinely needs longer lines sets `"wide": true` and is shown
+   stacked.
 
 ## Page template
 
-Every topic page follows this structure (headings in Turkish):
+Every topic page follows this structure:
 
-1. **Özet (TL;DR)** — 3–5 short bullet points. What must a student remember?
-2. **Kavram (Concept)** — explanation in prose, with a small diagram where it helps
-   (e.g. stack vs heap). Explain *why*, not just *what*.
-3. **Örnekler (Examples)** — 2–5 runnable examples, simple to realistic.
-   Each example: short intro sentence → code → output → 1–3 sentences explaining
-   the interesting line.
-4. **Sık Yapılan Hatalar (Common Mistakes)** — wrong code, the error or wrong
-   output it produces, and the fix.
-5. **Çıktıyı Tahmin Et (Predict the Output)** — 2–3 small snippets with a hidden
-   answer and explanation.
+1. **Summary** — 3–5 short bullet points. What must a student remember, in both
+   languages?
+2. **Concept** — explanation in prose, with a small diagram where it helps
+   (e.g. stack vs heap, CLR vs CPython). Explain *why*, not just *what*.
+3. **Examples** — 2–5 runnable `<Pair>` examples, simple to realistic. Each:
+   short intro sentence → C# | Python → outputs → "what differs and why".
+4. **Common Mistakes** — wrong code, the error or wrong output it produces, and
+   the fix. Mistakes are usually language-specific; label which language.
+5. **Predict the Output** — 2–3 small snippets with a hidden answer and
+   explanation. Include at least one where the two languages disagree.
 6. **Mini Quiz** — 3–5 multiple-choice questions with explanations.
-7. **Hızlı Başvuru (Cheat Sheet)** — compact syntax table for this topic.
-8. **Yapay Zekâ ile Çalışırken (Working with AI)** — 1–2 good prompts for learning
-   this topic and one thing students must verify themselves.
+7. **Cheat Sheet** — compact two-column syntax table (C# | Python).
+8. **Working with AI** — 1–2 good prompts for learning this topic and one thing
+   students must verify themselves.
 
 Skip a section only when it genuinely does not apply.
 
-## Components to build
+## Components
 
+- `<Pair>` — C# and Python code side by side with aligned outputs and a
+  "what differs" slot; stacks on narrow screens.
+- `<Sample>` — one verified sample (`lang="cs"` or `lang="py"`) with its output.
 - `<Output>` — styled block for program output, visually distinct from code.
-- `<Predict>` — code snippet + "Cevabı göster" button revealing answer and explanation.
+- `<Predict>` — code snippet + "Show answer" button revealing answer and explanation.
 - `<Quiz>` — multiple choice, instant feedback per question, explanation shown after
   answering, score at the end. Questions defined as data in the MDX file.
-- `<Mistake>` — two-column (stacks on mobile) "Hatalı / Doğru" comparison with the
+- `<Mistake>` — two-column (stacks on mobile) "Wrong / Right" comparison with the
   resulting error message.
 - `<Note type="tip|warning|version|history">` — callouts. `history` is for
   "old code you may see" remarks.
-- `<Compare>` — side-by-side table/code for concepts like class vs struct vs record.
+- `<Compare>` — side-by-side table/code for concepts like class vs record vs
+  dataclass.
 - Progress checklist on the home page (topics marked as "reviewed"), stored in
   `localStorage`, wrapped in try/catch and working when storage is empty.
 
@@ -118,44 +164,47 @@ where possible (answers hidden with `<details>` as a fallback), respect
 - Primary job: fast, calm reading of code and explanations, on laptop and phone.
 - Code is the hero: excellent monospace font, generous code block spacing,
   clear distinction between code, output, and wrong code.
-- Before writing CSS, propose a short design plan (4–6 named colors, typefaces
-  and roles, layout sketch) and wait for approval. Avoid generic template looks.
+- The approved design is "Defter ve Çini" (`src/styles/theme.css`): six colors,
+  each with one meaning. Languages are distinguished by text labels, not by new
+  colors. Propose any design change before making it.
 - Light and dark themes must both be fully readable (check contrast).
 - Line length under ~80 characters for prose.
 
 ## Site structure
 
 ```
-/                       Home: how to use the guide, topic map, progress checklist
-/baslarken/             Getting started: dotnet CLI, project structure, how code runs
-/turler/                Types, variables, conversions
-/operatorler/           Operators and expressions
-/stringler/             Strings and formatting
-/kontrol-akisi/         Conditions, switch, pattern matching, loops
-/metotlar/              Methods
-/koleksiyonlar/         Arrays and collections
-/siniflar/              Classes, objects, properties, constructors, static
-/record-struct-enum/    Records, structs, enums
-/kalitim/               Inheritance, polymorphism, abstract, interfaces
-/null-guvenligi/        Null and nullable reference types
-/hatalar/               Exceptions
-/generics-lambda/       Generics, delegates, lambdas
-/linq/                  LINQ
-/dosyalar/              File I/O and `using`
-/async/                 async / await basics
-/hata-ayiklama-test/    Debugging and unit testing
-/yapay-zeka/            How to learn programming with AI
-/ekler/                 Appendices: operator overloading, indexers, bitwise, CLR internals, Git basics
-/kopya-kagidi/          One-page printable cheat sheet (print CSS)
+/                         Home: how to use the guide, topic map, progress checklist
+/getting-started/         dotnet CLI and python/uv, project structure, how code runs
+/types/                   Types, variables, conversions
+/operators/               Operators and expressions
+/strings/                 Strings and formatting
+/control-flow/            Conditions, switch/match, pattern matching, loops
+/functions/               Methods (C#) and functions (Python)
+/collections/             Arrays, lists, dictionaries, sets, queues
+/classes/                 Classes, objects, properties, constructors, static
+/records-structs-enums/   Records, structs, enums; dataclasses, enums
+/inheritance/             Inheritance, polymorphism, abstract classes, interfaces/protocols
+/null-safety/             null and nullable reference types; None and Optional
+/exceptions/              Exceptions in both languages
+/generics-lambdas/        Generics, delegates, lambdas; type variables, callables
+/querying-collections/    LINQ; comprehensions, generators, itertools
+/files/                   File I/O, using and with
+/async/                   async / await in both languages
+/debugging-testing/       Debugging, xUnit and pytest
+/learning-with-ai/        How to learn programming with AI
+/appendices/              Operator overloading and dunder methods, indexers, bitwise,
+                          under the hood (CLR, CPython), date/time, Git basics
+/cheat-sheet/             One-page printable cheat sheet (print CSS)
 ```
 
 ## Workflow rules for Claude Code
 
 - Work one chapter at a time. After each chapter: build the site, run
   `scripts/verify-samples`, and report what was added.
-- Use plan mode for structural changes; ask before adding dependencies.
+- Use plan mode for structural changes; ask before adding dependencies (npm
+  packages, NuGet packages, Python packages such as mypy or pytest).
 - Never mark a task done if the build or sample verification fails.
 - Commit after each completed chapter with a clear message
-  (`content: add LINQ chapter with 5 verified samples`).
+  (`content: add querying-collections chapter with 6 verified sample pairs`).
 - Keep `docs/content-spec.md` as the source of truth for scope. If you think
   content should be added or removed, propose it; don't silently change scope.
