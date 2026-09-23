@@ -60,7 +60,11 @@ if (rows && headers && rows.some((r) => r.length !== headers.length)) {
 					{rows.map((row) => (
 						<tr>
 							{row.map((cell, i) =>
-								i === 0 ? <th scope="row" set:html={inline(cell)} /> : <td set:html={inline(cell)} />,
+								i === 0 ? (
+									<th scope="row" set:html={inline(cell)} />
+								) : (
+									<td data-label={headers?.[i] || undefined} set:html={inline(cell)} />
+								),
 							)}
 						</tr>
 					))}

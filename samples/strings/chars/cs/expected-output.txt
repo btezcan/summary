@@ -1,0 +1,4 @@
+'A' False True True
+'7' True False False
+'b' False True False
+' ' False False False

@@ -853,3 +853,48 @@
 	stroke: var(--cs-kobalt);
 	stroke-width: 1.5;
 }
+
+/* On narrow screens a comparison table becomes one card per row: the row label,
+ * then each cell on its own line with its column name ("C#", "Python") above it.
+ * Code keeps its shape instead of breaking in the middle of an identifier. */
+@media (max-width: 50rem) {
+	.cs-compare--table table,
+	.cs-compare--table tbody,
+	.cs-compare--table tr,
+	.cs-compare--table th,
+	.cs-compare--table td {
+		display: block;
+	}
+
+	.cs-compare--table thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+
+	.cs-compare--table tr {
+		padding: 0.5rem 0;
+		border-bottom: 1px solid var(--cs-line);
+	}
+
+	.cs-compare--table :is(th, td) {
+		border: 0;
+		padding: 0.15rem 0.5rem;
+	}
+
+	.cs-compare--table tbody th {
+		background: none;
+	}
+
+	.cs-compare--table td[data-label]::before {
+		content: attr(data-label);
+		display: block;
+		font-size: var(--sl-text-2xs);
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--cs-muted);
+	}
+}

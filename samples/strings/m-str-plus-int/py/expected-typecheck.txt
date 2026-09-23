@@ -1,0 +1,1 @@
+main.py:2: error: Unsupported operand types for + ("str" and "int")  [operator]

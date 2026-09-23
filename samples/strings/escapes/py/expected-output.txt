@@ -1,0 +1,4 @@
+C:	emp
+ew
+C:\temp\new
+{"name": "Ali", "path": "C:\temp"}

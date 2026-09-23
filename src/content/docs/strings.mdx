@@ -1,5 +1,315 @@
 ---
-title: "Strings"
+title: Strings
+description: Immutable strings, interpolation and format specifiers, escapes, common methods, slicing, and the Turkish locale traps — in C# and Python side by side.
 ---
 
-This chapter is being written.
+import { Pair, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- Strings are **immutable** in both languages. Methods like `ToUpper` / `upper`
+  return a **new** string; you must assign the result.
+- Interpolation: `$"{x:F2}"` (C#) and `f"{x:.2f}"` (Python). The format
+  mini-languages are similar but not identical.
+- **C# string and number methods depend on the current culture** by default:
+  on a Turkish computer `"exit".ToUpper()` is `"EXİT"` and `double.Parse("3.14")`
+  is `314`. Python's `upper()`, `float()` and f-strings **never** use the locale.
+- Use `ToUpperInvariant`, `StringComparison.OrdinalIgnoreCase` and
+  `CultureInfo.InvariantCulture` for commands, identifiers and data files.
+- Building text in a loop: `StringBuilder` (C#), a list plus `"".join(...)`
+  (Python).
+
+## Concept
+
+### Immutable text, and "no text"
+
+A string object never changes. `s.ToUpper()` or `s.upper()` creates a new
+string and leaves `s` as it was. That's why two variables can safely share one
+string, and why forgetting to assign the result is a classic mistake.
+
+"No text" has two meanings in C#: the empty string `""` (a real string of length
+0) and `null` (no string at all). Python also has `""` and `None`, but you rarely
+test for `None` on strings; the empty string is **falsy**, so `if not name:` is
+the idiomatic empty check.
+
+<Pair id="strings/empty-null">
+  `string.IsNullOrWhiteSpace(s)` has no one-word Python equivalent;
+  `not s.strip()` checks "empty or only whitespace" (for a `str` that is not
+  `None`).
+</Pair>
+
+### Interpolation and format specifiers
+
+Both languages put expressions straight into the text: `$"..."` in C#, `f"..."`
+in Python. After a colon comes a **format specifier**.
+
+<Pair id="strings/formatting">
+  The specifiers look different — `F2` vs `.2f`, `,-8` vs `:<8`, `N0` vs `,` —
+  but do the same job. Note the last line: C#'s percent format adds a space
+  (`25.6 %`), Python's doesn't. C#'s output here uses the invariant culture; on a
+  Turkish-locale computer it would print `3,46` and `12.500`.
+</Pair>
+
+<Compare
+  caption="Common format specifiers"
+  headers={['Meaning', 'C#', 'Python']}
+  rows={[
+    ['2 decimal places', '`{x:F2}`', '`{x:.2f}`'],
+    ['Thousands separator', '`{n:N0}`', '`{n:,}`'],
+    ['Percent, 1 decimal', '`{r:P1}`', '`{r:.1%}`'],
+    ['Left-align in 8 columns', '`{s,-8}`', '`{s:<8}`'],
+    ['Right-align in 6 columns', '`{x,6}`', '`{x:>6}` (numbers: default)'],
+    ['Zero-pad to 3 digits', '`{n:D3}`', '`{n:03}`'],
+    ['Hexadecimal', '`{n:X}`', '`{n:X}`'],
+    ['Date as 09.01.2026', '`{d:dd.MM.yyyy}`', '`{d:%d.%m.%Y}`'],
+  ]}
+/>
+
+<Pair id="strings/dates">
+  The date patterns use different letters: C# uses `dd`, `MM`, `yyyy`; Python
+  uses `strftime` codes `%d`, `%m`, `%Y`. The ISO format `yyyy-MM-dd` is the safe
+  choice for files and data. C#'s `DayOfWeek` is an enum name, so it is always
+  English; the format `{exam:dddd}` gives the culture's day name instead.
+  Python's `%A` follows the locale.
+</Pair>
+
+### Escapes, verbatim and raw strings
+
+A backslash starts an escape sequence in both languages: `\n` is a new line,
+`\t` a tab. That turns Windows paths into a trap. C# offers **verbatim strings**
+`@"..."` and **raw string literals** `"""..."""`; Python offers **raw strings**
+`r"..."` and triple-quoted strings.
+
+<Pair id="strings/escapes">
+  The first path is broken the same way in both languages: `\t` became a tab and
+  `\n` a line break. In C#'s raw literal, `\t` stays a backslash and a `t`, and
+  the indentation before the closing `"""` is removed. Python's triple-quoted
+  string still processes escapes, so it needs `\\`.
+</Pair>
+
+<Note type="version" version="C# 11">
+  Raw string literals (`"""..."""`) arrived in C# 11. Older code uses verbatim
+  strings `@"..."` and doubles quotes inside them: `@"say ""hi"""`.
+</Note>
+
+### Common methods
+
+<Pair id="strings/methods">
+  Most methods map one to one. Differences: Python uses the `in` operator and the
+  `len()` function instead of `Contains` and `Length`, and a **slice**
+  `t[7:12]` instead of `Substring(7, 5)`. Note that `Substring` takes a
+  **length**, while a slice takes an **end index**.
+</Pair>
+
+<Compare
+  caption="String methods"
+  headers={['Task', 'C#', 'Python']}
+  rows={[
+    ['Length', '`s.Length`', '`len(s)`'],
+    ['Upper / lower case', '`ToUpper()`, `ToLower()`', '`upper()`, `lower()`'],
+    ['Remove outer spaces', '`Trim()`', '`strip()`'],
+    ['Contains', '`s.Contains("x")`', '`"x" in s`'],
+    ['Starts / ends with', '`StartsWith`, `EndsWith`', '`startswith`, `endswith`'],
+    ['Find position', '`IndexOf` (−1 if missing)', '`find` (−1), `index` (raises)'],
+    ['Part of the text', '`Substring(start, length)`, `s[a..b]`', '`s[a:b]`'],
+    ['Replace', '`Replace(old, new)`', '`replace(old, new)`'],
+    ['Split / join', '`Split(\';\')`, `string.Join(", ", parts)`', '`split(";")`, `", ".join(parts)`'],
+    ['Empty or blank?', '`string.IsNullOrWhiteSpace(s)`', '`not s.strip()`'],
+  ]}
+/>
+
+<Pair id="strings/split-join">
+  Note which object owns `join`: C# calls the static `string.Join(separator,
+  parts)`, Python calls `join` on the separator: `" | ".join(parts)`.
+</Pair>
+
+### Indexing and slicing
+
+Python's **slices** `s[start:end:step]` work on every sequence, and they never
+raise an error for out-of-range bounds. C# 8 added **indices and ranges**: `s[^1]`
+is the last character and `s[1..4]` is a range, end excluded — like Python.
+
+<Pair id="strings/slicing">
+  `s[1..4]` and `s[1:4]` both mean "from index 1 up to, but not including,
+  index 4". Reversing a string is `s[::-1]` in Python; in C# you reverse the
+  characters and concatenate them.
+</Pair>
+
+### Characters
+
+<Pair id="strings/chars">
+  C# asks `char.IsDigit(c)`; Python asks the one-character string itself:
+  `c.isdigit()`. Both follow Unicode, so `'ş'` is a letter in both.
+</Pair>
+
+### Culture and locale: the Turkish traps
+
+Text rules depend on the language. In Turkish, the upper case of `i` is `İ`
+(with a dot) and the lower case of `I` is `ı` (dotless). The decimal separator
+is a comma, and the dot groups thousands.
+
+The two languages take opposite defaults:
+
+- **C#** uses the **current culture** — the settings of the computer the program
+  runs on — for `ToUpper()`, `ToLower()`, `double.Parse`, `ToString()` and string
+  interpolation. The same program behaves differently in Istanbul and in Berlin.
+- **Python**'s `str.upper()`, `float()`, `str()` and f-strings are
+  **locale-independent**. Only functions in the `locale` module (and the `n`
+  format) use the locale, and only after `locale.setlocale(...)`.
+
+<Pair id="strings/turkish-i">
+  With the Turkish culture, C# upper-cases `exit` to `EXİT`. Python gives `EXIT`
+  on every computer, but has its own Turkish surprise: `"İ".lower()` is **two**
+  code points (`i` plus a combining dot), because Python's lowercasing ignores
+  the language. For comparisons that must ignore case, use
+  `StringComparison.OrdinalIgnoreCase` in C# and `casefold()` in Python.
+</Pair>
+
+<Pair id="strings/culture-numbers">
+  Mirror images: in Turkish, `"3.14"` means three hundred fourteen, and both
+  `double.Parse(..., tr)` and `locale.atof` agree. Python's plain `float("3.14")`
+  ignores the locale and gives `3.14`.
+</Pair>
+
+<Note type="warning" title="Rule of thumb">
+  **Show** numbers and dates to people in their culture. **Store, parse and
+  compare** data, file names and commands with the invariant culture (C#) or
+  without the locale (Python).
+</Note>
+
+### Building strings in a loop
+
+Because strings are immutable, `s += x` inside a loop copies the whole string
+each time: fine for five items, slow for fifty thousand.
+
+<Pair id="strings/build-strings">
+  `StringBuilder` grows one buffer; Python collects the parts in a list and joins
+  them once. When you already have a sequence, `string.Join` and `"".join` do
+  it in one step.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Calling ToUpper without keeping the result" wrong="strings/m-discard" right="strings/m-discard-fixed">
+  `name.ToUpper()` returned `"ALI"` and the program threw it away. The Python
+  version of the mistake is identical: `name.upper()` on its own line.
+</Mistake>
+
+<Mistake lang="py" title="Calling upper() without keeping the result" wrong="strings/m-discard" right="strings/m-discard-fixed" />
+
+<Mistake lang="cs" title="Comparing commands with ToUpper()" wrong="strings/m-command" right="strings/m-command-fixed">
+  On a Turkish-locale computer `"exit".ToUpper()` is `"EXİT"`, so the command is
+  never recognized. Real software shipped with this bug. Compare with
+  `StringComparison.OrdinalIgnoreCase`, or use `ToUpperInvariant()`.
+</Mistake>
+
+<Mistake lang="cs" title="Parsing data with the current culture" wrong="strings/m-current-culture" right="strings/m-current-culture-fixed">
+  `"3.14"` from a file became `314` because the computer is set to Turkish. Parse
+  and format data with `CultureInfo.InvariantCulture`.
+</Mistake>
+
+<Mistake lang="cs" title="Substring(start, end) instead of (start, length)" wrong="strings/m-substring" right="strings/m-substring-fixed">
+  `Substring(2, 5)` asks for five characters starting at index 2, but only
+  three exist. Use `Substring(start)` for "to the end", or a range `code[2..5]`,
+  which takes an end index like a Python slice.
+</Mistake>
+
+<Mistake lang="py" title="Joining a string and a number with +" wrong="strings/m-str-plus-int" right="strings/m-str-plus-int-fixed">
+  Python never converts numbers to text implicitly. Use an f-string or `str()`.
+  (C# does convert: `"Total: " + 5` is `"Total: 5"`.)
+</Mistake>
+
+## Predict the Output
+
+<Predict id="strings/p-substring">
+  C#'s `Substring(1, 3)` takes three characters from index 1: `ell`. Python's
+  `s[1:3]` stops **before** index 3: `el`. Same numbers, different meanings.
+</Predict>
+
+<Predict id="strings/p-find">
+  Both find `"an"` at index 1 first and at index 3 last, and both return `-1` for
+  a missing substring. Python's `index` raises `ValueError` instead — useful when
+  a missing value is a bug, not a normal case.
+</Predict>
+
+<Predict id="strings/p-slice-safe" lang="py">
+  Slices clamp out-of-range bounds instead of failing: `s[1:100]` stops at the
+  end, and `s[10:]` is an empty string. A single index is strict: `s[10]` raises
+  `IndexError`.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'After `string s = "abc"; s.ToUpper();` in C#, what is `s`?',
+    options: ['`"ABC"`', '`"abc"`', '`null`', 'It doesn\'t compile'],
+    answer: 1,
+    explanation: 'Strings are immutable. `ToUpper()` returns a new string, and this code ignores it. The same is true for `s.upper()` in Python.',
+  },
+  {
+    question: 'What does this Python program print — on any computer, including one set to Turkish?',
+    sample: 'strings/q-upper',
+    lang: 'py',
+    options: ['`İSTANBUL`', '`ISTANBUL`', 'It depends on the locale', 'A `UnicodeError`'],
+    answer: 1,
+    explanation: '`str.upper()` never uses the locale. In C#, `"istanbul".ToUpper()` on a Turkish-locale computer gives `İSTANBUL`.',
+  },
+  {
+    question: 'A C# program runs on a computer set to Turkish. What does `double.Parse("3.14")` return?',
+    options: ['`3.14`', '`314`', 'It throws `FormatException`', '`3`'],
+    answer: 1,
+    explanation: 'In tr-TR the dot is the thousands separator, so `"3.14"` reads as 314. Pass `CultureInfo.InvariantCulture` when parsing data.',
+  },
+  {
+    question: 'Which Python expression equals C#\'s `s.Substring(2, 3)`?',
+    options: ['`s[2:3]`', '`s[2:5]`', '`s[3:2]`', '`s.substring(2, 3)`'],
+    answer: 1,
+    explanation: '`Substring` takes a start and a length; a slice takes a start and an end index. Start 2, length 3 → end 5.',
+  },
+  {
+    question: 'What is the best way to build one long string from 10,000 pieces in Python?',
+    options: [
+      '`s += piece` in a loop',
+      'Collect the pieces in a list, then `"".join(pieces)`',
+      '`s = s + piece` in a loop',
+      'Use `StringBuilder`',
+    ],
+    answer: 1,
+    explanation: 'Each `+=` may copy the whole string. `"".join` computes the final size once. `StringBuilder` is the C# tool for the same job.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Interpolation', '`$"{name}: {x:F2}"`', '`f"{name}: {x:.2f}"`'],
+    ['Multi-line / raw', '`"""..."""`, `@"C:\\temp"`', '`"""..."""`, `r"C:\\temp"`'],
+    ['Length', '`s.Length`', '`len(s)`'],
+    ['Empty check', '`string.IsNullOrEmpty(s)`', '`not s`'],
+    ['Contains', '`s.Contains("x")`', '`"x" in s`'],
+    ['Slice', '`s[1..4]`, `s.Substring(1, 3)`', '`s[1:4]`'],
+    ['Last character', '`s[^1]`', '`s[-1]`'],
+    ['Split / join', '`s.Split(\',\')`, `string.Join(",", a)`', '`s.split(",")`, `",".join(a)`'],
+    ['Case-insensitive equal', '`string.Equals(a, b, StringComparison.OrdinalIgnoreCase)`', '`a.casefold() == b.casefold()`'],
+    ['Parse data', '`double.Parse(s, CultureInfo.InvariantCulture)`', '`float(s)`'],
+    ['Build in a loop', '`StringBuilder`', 'list + `"".join(...)`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Here is my C# string-handling code. Which lines would behave differently on a
+  computer set to Turkish? Explain each one, but don't fix the code."
+- "Translate these C# format strings (`F2`, `N0`, `P1`, `dd.MM.yyyy`) to Python
+  f-strings, and tell me which outputs will not be identical."
+
+<Note type="warning" title="Verify it yourself">
+  AI-generated code is usually tested on English-locale machines. Before you trust
+  string or number code, run it with the culture set to `tr-TR` (C#) — the
+  mistakes above show how — and feed it the letters `ı`, `İ`, `ş` and `ğ`.
+</Note>

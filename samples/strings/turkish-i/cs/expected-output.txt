@@ -1,0 +1,4 @@
+EXİT
+EXIT
+i
+True
