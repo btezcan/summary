@@ -17,10 +17,10 @@ This is the source of truth for **what** each page covers. `CLAUDE.md` defines
 
 ---
 
-## Proposed scope changes (for the instructor's review)
+## Scope changes (approved by the instructor)
 
 The move from "C# only, Turkish" to "C# and Python, English" changes some chapters.
-Nothing below is final until the instructor approves it.
+The instructor approved the list below, including mypy and pytest.
 
 **Renamed**
 - Ch. 6 "Methods" → **"Methods and Functions"** (`/functions/`).
@@ -42,10 +42,10 @@ Nothing below is final until the instructor approves it.
 **Changed in scope**
 - **Cheat sheet:** two columns (C# | Python) need about two A4 pages instead of one.
 - **Mini projects:** a reference solution in both languages.
-- **Testing (ch. 17):** Python tests use **pytest**, which is a new dependency and
-  needs approval. The fallback is the built-in `unittest`.
-- **Type-checker examples** (ch. 2, 11, 13) would use **mypy**, also a new
-  dependency needing approval. Without it, those points are made in prose only.
+- **Testing (ch. 17):** Python tests use **pytest** (approved; add it pinned to
+  `samples/requirements.txt` when the chapter is written).
+- **Type checking:** every Python sample is checked with **mypy** (approved, pinned).
+  Where the report is the lesson (ch. 2, 11, 13), it is shown on the page.
 
 **Removed**
 - Nothing from the original spec.
@@ -1354,8 +1354,8 @@ nullable warnings.
    subscriptable`. How to read each.
 2. Nullable reference types (`string?` vs `string`), compiler warnings (CS8600,
    CS8602), enabled by default in new projects ↔ `str | None` / `Optional[str]` +
-   a type checker. Python itself never warns (with mypy: say what it would
-   report, or show it if mypy is approved).
+   a type checker. Python itself never warns; show mypy's report next to the
+   C# compiler warning.
 3. Operators: `?.`, `??`, `??=`, `!` (null-forgiving — use rarely, explain the
    risk) ↔ no Python equivalents; idioms: `x if x is not None else default`,
    `getattr`, `dict.get`. Warn about `x or default`.
@@ -1915,8 +1915,7 @@ tests in both languages.
 5. Unit testing: **xUnit** (`dotnet new xunit`, `[Fact]`, `[Theory]` +
    `[InlineData]`, `dotnet test`) ↔ **pytest** (test functions, plain `assert`,
    `@pytest.mark.parametrize`, `pytest.raises`). Arrange–Act–Assert in both.
-   Testing edge cases (empty, zero, negative, max). **pytest is a dependency —
-   ask first; fallback `unittest`.**
+   Testing edge cases (empty, zero, negative, max).
 6. Project layout: `src/GradeApp`, `tests/GradeApp.Tests` ↔ `grade_app.py`,
    `tests/test_grade_app.py`.
 

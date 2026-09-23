@@ -20,7 +20,8 @@ input.txt               (optional) text typed on the keyboard (standard input)
 sample.json             (optional) settings, see below
 expected-output.txt     standard output          ┐
 expected-error.txt      compile error/exception  ├ written by verify-samples --update
-expected-warnings.txt   warnings                 ┘
+expected-warnings.txt   warnings                 │
+expected-typecheck.txt  mypy errors (Python)     ┘
 ```
 
 `<Pair id="types/overflow" />` shows `types/overflow/cs` and `types/overflow/py`
@@ -55,11 +56,23 @@ extra modules next to `main.py`.
 - **No unexpected warnings**: a compiler warning or Python `SyntaxWarning` fails
   the sample unless it is stored in `expected-warnings.txt` (because the warning is
   the point of the example).
+- **Type checking (Python)**: every Python sample is checked with the pinned mypy
+  (`samples/requirements.txt`). An error fails the sample unless it is stored in
+  `expected-typecheck.txt`; the page then shows it as "Type checker (mypy)".
+  Use this when the type checker's report *is* the lesson.
 - **Hash-order independence**: Python samples run with two `PYTHONHASHSEED` values
   and must print the same thing. Sort sets before printing them.
 - **Line length**: at most 48 characters per line, so a pair fits side by side.
 - `// #region name` … `// #endregion` (C#) and `# region name` … `# endregion`
   (Python) mark a part of a file that a page can show on its own.
+
+## Setup
+
+```sh
+uv python install 3.12 3.14
+uv venv --python 3.14 .venv-samples
+uv pip install --python .venv-samples -r samples/requirements.txt
+```
 
 ## Commands
 

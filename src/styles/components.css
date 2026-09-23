@@ -121,7 +121,7 @@
 	color: var(--cs-ink);
 }
 
-.cs-output[data-variant='warning'] {
+.cs-output:is([data-variant='warning'], [data-variant='typecheck']) {
 	--cs-output-accent: var(--cs-kum);
 	--cs-output-tint: var(--cs-kum-tint);
 }

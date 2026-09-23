@@ -87,6 +87,11 @@ reviews content; students only read.
   clearer. Mention them only as "old code you may see".
 - Students use the official installer or `uv`; don't depend on the macOS/Linux
   system Python.
+- Every Python sample is type-checked with the pinned **mypy**
+  (`samples/requirements.txt`). Code must type-check unless the mypy report is the
+  point of the example; then it is stored and shown as "Type checker (mypy)".
+- **pytest** is approved for the testing chapter; add it to
+  `samples/requirements.txt` (pinned) when chapter 17 is written.
 
 ## Correctness is the top priority
 

@@ -40,6 +40,10 @@ jobs:
         with:
           node-version: 24
 
+      # mypy (pinned) type-checks every Python sample under 3.14.
+      - name: Install the pinned Python tools
+        run: python3.14 -m pip install -r samples/requirements.txt
+
       # Locale samples set tr-TR / tr_TR.UTF-8 explicitly; Ubuntu doesn't ship it.
       - name: Generate the Turkish locale
         run: sudo locale-gen tr_TR.UTF-8

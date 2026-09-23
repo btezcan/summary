@@ -17,10 +17,12 @@
 //   expected-output.txt     standard output
 //   expected-error.txt      compile error, uncaught exception or traceback
 //   expected-warnings.txt   compiler / interpreter warnings (absent = none allowed)
+//   expected-typecheck.txt  Python: mypy errors (absent = the code must type-check)
 //
-// Interpreters: C# needs the .NET 10+ SDK. Python needs 3.14 (target) and 3.12
-// (the oldest version taught). They are found via $PYTHON / $PYTHON_MIN, then
-// `uv python find`, then python3.14 / python3.12 on PATH.
+// Interpreters: C# needs the .NET 10+ SDK. Python needs 3.14 (target, with the
+// tools from samples/requirements.txt, i.e. mypy) and 3.12 (the oldest version
+// taught). They are found via $PYTHON / $PYTHON_MIN, then .venv-samples/ (3.14),
+// then `uv python find`, then python3.14 / python3.12 on PATH.
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -47,6 +49,8 @@ const OPTION_KEYS = {
 	wide: 'boolean', // lines may exceed MAX_LINE; <Pair> shows the sample stacked
 	timeoutMs: 'number',
 };
+
+const MYPY_CACHE = path.join(os.tmpdir(), 'verify-samples-mypy');
 
 const NOISE = [/^An issue was encountered verifying workloads\./, /^\s*$/];
 
@@ -91,11 +95,14 @@ if (samples.length === 0) {
 const tools = {};
 if (samples.some((s) => s.lang === 'cs')) await checkDotnet();
 if (samples.some((s) => s.lang === 'py')) {
-	tools.python = await findPython(PY_TARGET, 'PYTHON');
+	tools.python = await findPython(PY_TARGET, 'PYTHON', [path.join(ROOT, '.venv-samples', 'bin', 'python')]);
 	tools.pythonMin = await findPython(PY_MIN, 'PYTHON_MIN');
+	await checkMypy(tools.python);
 }
 
-console.log(`Verifying ${samples.length} samples (${args.jobs} parallel jobs)${args.update ? ' — update mode' : ''}\n`);
+console.log(`Verifying ${samples.length} samples (${args.jobs} parallel jobs)${args.update ? ' — update mode' : ''}`);
+if (tools.python) console.log(`Python ${tools.python.version} (${tools.python.mypy}), Python ${tools.pythonMin.version}`);
+console.log('');
 const started = Date.now();
 const results = await mapLimit(samples, args.jobs, verifySample);
 
@@ -224,6 +231,7 @@ async function verifyPython({ opts, dir, result, fail }) {
 		if (compile.code === 0) fail('Expected a SyntaxError, but the code compiled.');
 		else compareFile(result, fail, dir, 'expected-error.txt', compileOut + '\n');
 		removeIfUpdating(result, dir, 'expected-output.txt');
+		removeIfUpdating(result, dir, 'expected-typecheck.txt');
 		return;
 	}
 	if (compile.code !== 0) return fail('Compile failed:\n' + indent(compileOut));
@@ -232,7 +240,13 @@ async function verifyPython({ opts, dir, result, fail }) {
 		compareFile(result, fail, dir, 'expected-warnings.txt', compileWarnings.length ? lines(compileWarnings) : null);
 		return;
 	}
-	if (opts.expect === 'test') return fail('Python test samples are not supported yet (pytest needs approval).');
+	if (opts.expect === 'test') return fail('Python test samples are not supported yet (pytest is added with chapter 17).');
+
+	// 1b. Type check with mypy. Errors are allowed only when stored in expected-typecheck.txt,
+	// which the page shows as "Type checker (mypy)" — usually because the error is the lesson.
+	const typecheck = await runMypy(dir, opts, env, timeout);
+	if (typecheck.failed) return fail(typecheck.failed);
+	compareFile(result, fail, dir, 'expected-typecheck.txt', typecheck.errors.length ? lines(typecheck.errors) : null);
 
 	// 2. Run on the target version with two hash seeds, then on the oldest taught version.
 	// SyntaxWarnings were already collected in step 1; don't print them twice.
@@ -290,6 +304,45 @@ async function verifyPython({ opts, dir, result, fail }) {
 	} else if (oldOut !== stdout) {
 		fail(`Output differs on Python ${tools.pythonMin.version}:\n` + diff(stdout, oldOut));
 	}
+}
+
+/** Runs mypy on every .py file of the sample. Notes (": note:") are dropped: only errors are shown. */
+async function runMypy(dir, opts, env, timeout) {
+	const files = fs.readdirSync(dir).filter((n) => n.endsWith('.py')).sort();
+	const pyVersion = opts.minPython && compareVersions(opts.minPython, PY_MIN) > 0 ? opts.minPython : PY_MIN;
+	const cache = path.join(MYPY_CACHE, dir.replace(/[^A-Za-z0-9]+/g, '_'));
+	const r = await run(
+		tools.python.exe,
+		[
+			'-m', 'mypy',
+			'--python-version', pyVersion,
+			'--check-untyped-defs',
+			'--no-error-summary',
+			'--no-color-output',
+			'--no-pretty',
+			'--cache-dir', cache,
+			...files,
+		],
+		{ cwd: dir, env: { ...env, MYPY_FORCE_COLOR: '0' }, timeout: timeout * 3 },
+	);
+	// Exit codes: 0 = clean, 1 = type errors found, 2 = mypy itself failed.
+	if (r.code !== 0 && r.code !== 1) return { failed: 'mypy failed:\n' + indent(r.stdout + r.stderr), errors: [] };
+	const errors = normalizePaths(toLf(r.stdout), dir)
+		.split('\n')
+		.filter((l) => /^\S+\.py:\d+: error: /.test(l));
+	return { errors };
+}
+
+async function checkMypy(python) {
+	const r = await run(python.exe, ['-m', 'mypy', '--version'], { cwd: ROOT, env: baseEnv, timeout: 60_000 });
+	if (r.code !== 0) {
+		console.error(
+			`mypy is missing for ${python.exe}. Install the pinned tools:\n` +
+				'  uv venv --python 3.14 .venv-samples && uv pip install --python .venv-samples -r samples/requirements.txt',
+		);
+		process.exit(1);
+	}
+	python.mypy = r.stdout.trim();
 }
 
 // --- Expected files -----------------------------------------------------------
@@ -512,9 +565,10 @@ async function checkDotnet() {
 }
 
 /** Finds a Python interpreter of exactly the given minor version. */
-async function findPython(version, envVar) {
+async function findPython(version, envVar, preferred = []) {
 	const candidates = [];
 	if (process.env[envVar]) candidates.push(process.env[envVar]);
+	candidates.push(...preferred.filter((p) => fs.existsSync(p)));
 	const uv = await run('uv', ['python', 'find', version], { cwd: ROOT, env: baseEnv, timeout: 30_000 });
 	if (uv.code === 0 && uv.stdout.trim()) candidates.push(uv.stdout.trim());
 	candidates.push(`python${version}`);

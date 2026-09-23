@@ -38,13 +38,16 @@ though: it won't silently convert `"1"` to a number, so `"1" + 2` is a
 
 <Pair id="types/declare">
   C# prints .NET type names (`System.Int32` is what `int` stands for). Python's
-  last line shows the same name now referring to a `str`. The commented-out C# line
-  is a compile error — see [Common Mistakes](#common-mistakes).
+  last line shows the same name now referring to a `str`. The program runs, but
+  the type checker flags the rebinding — the same rule the C# compiler enforces on
+  the commented-out line (see [Common Mistakes](#common-mistakes)).
 </Pair>
 
-Python also has **type hints** (`age: int = 20`). They document intent and a
-type checker such as mypy or pyright can read them, but **Python ignores them at
-runtime**. You'll see this below with `Final` and `int | None`.
+Python also has **type hints** (`age: int = 20`). They document intent, and a
+**type checker** such as mypy or pyright reads them, but **Python itself ignores
+them at runtime**. On this site, every Python sample is also checked with mypy;
+when it finds a problem, the report appears in a **Type checker (mypy)** block
+next to the output — often before the program even runs into it.
 
 ### Numeric types
 
@@ -192,9 +195,9 @@ Python has no boxing: every value, even `42`, is already an object on the heap.
 
 <Pair id="types/constants">
   `const` is enforced by the C# compiler. Python has no real constants: `Final`
-  and the `UPPER_CASE` name are signals to readers and type checkers, and the
-  program happily reassigns `PI`. (C# also has `readonly` fields, set once at
-  runtime — you'll meet them with classes in chapter 8.)
+  and the `UPPER_CASE` name are signals to readers and type checkers. The program
+  happily reassigns `PI`; only mypy objects. (C# also has `readonly` fields, set
+  once at runtime — you'll meet them with classes in chapter 8.)
 </Pair>
 
 ### Converting `null` / `None`
@@ -202,8 +205,8 @@ Python has no boxing: every value, even `42`, is already an object on the heap.
 <Pair id="types/convert-null">
   `Convert.ToInt32(null)` quietly returns `0`, while `int.Parse(null)` throws —
   and the C# compiler warned about that line before the program ran. Python's
-  `int(None)` raises `TypeError`. A silent `0` can hide a bug; prefer the version
-  that fails loudly.
+  `int(None)` raises `TypeError` — and mypy caught it before running, too. A
+  silent `0` can hide a bug; prefer the version that fails loudly.
 </Pair>
 
 ## Common Mistakes
@@ -232,7 +235,8 @@ Python has no boxing: every value, even `42`, is already an object on the heap.
 
 <Mistake lang="py" title="Forgetting that input() returns a string" wrong="types/m-input-plus" right="types/m-input-plus-fixed">
   `input()` always returns a `str`, and Python won't add a number to a string.
-  Note how the traceback points at the failing expression. In C# the same idea
+  Note how the traceback points at the failing expression, and that mypy reports
+  the same line without running the program. In C# the same idea
   doesn't fail at all: `Console.ReadLine() + 1` is string concatenation and prints
   `191` — a quieter bug.
 </Mistake>

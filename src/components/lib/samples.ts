@@ -29,10 +29,12 @@ export interface Sample {
 	output?: string;
 	error?: string;
 	warnings?: string;
+	/** Python: mypy errors, when the type checker's report is part of the lesson. */
+	typecheck?: string;
 }
 
 export interface OutputBlock {
-	variant: 'output' | 'warning' | 'compile-error' | 'exception';
+	variant: 'output' | 'warning' | 'typecheck' | 'compile-error' | 'exception';
 	label: string;
 	text: string;
 }
@@ -63,6 +65,7 @@ export function getSample(id: string, lang: Lang): Sample {
 		output: read(id, lang, 'expected-output.txt'),
 		error: read(id, lang, 'expected-error.txt'),
 		warnings: read(id, lang, 'expected-warnings.txt'),
+		typecheck: read(id, lang, 'expected-typecheck.txt'),
 	};
 
 	const needsOutput = (sample.expect === 'run' && !opts.buildOnly) || sample.expect === 'exception';
@@ -120,12 +123,13 @@ function dedent(code: string): string {
 	return lines.map((l) => l.slice(min)).join('\n');
 }
 
-/** The output blocks shown for a sample: warnings, errors, program output. */
+/** The output blocks shown for a sample: warnings, type checker, errors, program output. */
 export function outputBlocks(sample: Sample): OutputBlock[] {
 	const blocks: OutputBlock[] = [];
 	const trim = (s: string) => s.replace(/\s+$/, '');
 	const warningLabel = sample.lang === 'cs' ? 'Compiler warning' : 'Warning';
 	if (sample.warnings) blocks.push({ variant: 'warning', label: warningLabel, text: trim(sample.warnings) });
+	if (sample.typecheck) blocks.push({ variant: 'typecheck', label: 'Type checker (mypy)', text: trim(sample.typecheck) });
 	if (sample.expect === 'compile-error') {
 		const label = sample.lang === 'cs' ? 'Compile error' : 'Syntax error';
 		blocks.push({ variant: 'compile-error', label, text: trim(sample.error!) });

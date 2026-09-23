@@ -1,0 +1,3 @@
+# Python tools used by scripts/verify-samples (pinned for reproducible output).
+# Local: uv venv --python 3.14 .venv-samples && uv pip install --python .venv-samples -r samples/requirements.txt
+mypy==2.3.1
