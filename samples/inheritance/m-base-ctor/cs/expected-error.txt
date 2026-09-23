@@ -1,0 +1,1 @@
+Program.cs(9,7): error CS7036: There is no argument given that corresponds to the required parameter 'name' of 'Animal.Animal(string)'

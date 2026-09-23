@@ -1,0 +1,1 @@
+main.py:10: error: Cannot instantiate abstract class "Shape" with abstract attribute "area"  [abstract]

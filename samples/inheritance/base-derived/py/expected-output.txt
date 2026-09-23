@@ -1,0 +1,3 @@
+Animal __init__
+Dog __init__
+Rex is a Dog

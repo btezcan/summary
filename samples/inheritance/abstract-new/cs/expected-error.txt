@@ -1,0 +1,1 @@
+Program.cs(1,9): error CS0144: Cannot create an instance of the abstract type or interface 'Shape'

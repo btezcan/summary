@@ -1,0 +1,1 @@
+Program.cs(11,19): warning CS0114: 'Dog.Speak()' hides inherited member 'Animal.Speak()'. To make the current member override that implementation, add the override keyword. Otherwise add the new keyword.

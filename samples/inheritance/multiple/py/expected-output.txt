@@ -1,0 +1,4 @@
+flying
+swimming
+True
+['Duck', 'Flyer', 'Swimmer', 'object']

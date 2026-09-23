@@ -1,5 +1,282 @@
 ---
-title: "Inheritance and Polymorphism"
+title: Inheritance and Polymorphism
+description: Base and derived classes, overriding, abstract classes, interfaces and protocols, multiple inheritance, composition and equality — in C# and Python side by side.
 ---
 
-This chapter is being written.
+import { Pair, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- A **derived class** inherits the members of its **base class**:
+  `class Dog : Animal` (C#), `class Dog(Animal)` (Python). Call the base
+  constructor with `: base(...)` / `super().__init__(...)`.
+- **Polymorphism:** code that works with the base type automatically uses each
+  object's own version of a method. C# requires `virtual` in the base and
+  `override` in the derived class; in Python every method can be overridden.
+- **Abstract** classes can't be instantiated: C# refuses at compile time, Python
+  (`abc.ABC`) at runtime.
+- **Interfaces** (C#) must be declared by the class. Python **protocols** are
+  structural: any object with the right methods fits.
+- C# allows one base class plus many interfaces; Python allows **multiple
+  inheritance**. Either way, prefer **composition** ("has a") when "is a"
+  doesn't really fit.
+
+## Concept
+
+### Base and derived classes
+
+A derived class reuses everything the base class has, and adds or changes
+behavior. When a derived object is created, the **base part is initialized
+first**.
+
+<Pair id="inheritance/base-derived">
+  C# calls the base constructor with `: base(name)` before the derived
+  constructor's body runs. Python runs only `Dog.__init__`; it's the explicit
+  `super().__init__(name)` call that initializes the `Animal` part. `GetType()` /
+  `type(self)` report the **real** type, `Dog`, even inside `Animal`'s method.
+</Pair>
+
+<Note type="tip" title="protected and _name">
+  C#'s `protected` makes a member visible to derived classes but not to other
+  code. Python has no such keyword; the single underscore (`_name`) signals
+  "internal to this class and its subclasses".
+</Note>
+
+### Overriding and polymorphism
+
+**Polymorphism** means that a call like `animal.Speak()` runs the version that
+belongs to the object's actual class, even when the variable's type is the base
+class. That lets one loop work with many kinds of objects.
+
+<Pair id="inheritance/override">
+  C# makes you opt in twice: `virtual` in the base, `override` in the derived
+  class. Python methods are always overridable: redefining `speak` is enough.
+  `base.Speak()` and `super().speak()` call the base version.
+</Pair>
+
+### Abstract classes
+
+An **abstract** class describes what all its subclasses can do but leaves some
+methods for them to implement. You can't create an object of the abstract class
+itself.
+
+<Pair id="inheritance/shapes">
+  The loop doesn't know which shapes it gets; each one computes its own area.
+  `ToString` / `__str__` is written once in the base class and uses the
+  overridden `Area` / `area`. In Python, `ABC` and `@abstractmethod` add the
+  "must implement" rule.
+</Pair>
+
+<Pair id="inheritance/abstract-new">
+  C# rejects `new Shape()` at **compile** time (CS0144). Python raises
+  `TypeError` only when the line runs — mypy reports it earlier.
+</Pair>
+
+<Note type="tip" title="sealed">
+  A C# `sealed` class can't be inherited from, and a `sealed override` can't be
+  overridden further. Python's `typing.final` expresses the same intent, but only
+  type checkers enforce it.
+</Note>
+
+### Interfaces and protocols
+
+An **interface** is a contract: a list of members a class promises to provide.
+Code written against the interface works with any class that implements it. That
+is the idea behind dependency injection and easy testing: `ExamService` below
+doesn't know or care how messages are sent.
+
+<Pair id="inheritance/interfaces">
+  In C# the class must **declare** `: INotifier` — the typing is **nominal**.
+  Python's `Protocol` is **structural**: `EmailNotifier` never mentions
+  `Notifier`, yet it fits because it has a matching `send` method (mypy checks
+  this). At runtime Python simply calls `send` on whatever object it gets:
+  **duck typing**.
+</Pair>
+
+### One base class or many
+
+C# classes have **one** base class and can implement **many** interfaces. Python
+classes can have several base classes; Python then searches for methods in a
+fixed order, the **method resolution order** (MRO).
+
+<Pair id="inheritance/multiple">
+  Python's `Duck` gets real code from both bases. C#'s interfaces here only
+  declare `Fly` and `Swim`; the class writes the bodies itself. Multiple
+  inheritance is powerful but can get confusing, which is why C# avoids it; in
+  Python it's most often used for small "mixin" classes.
+</Pair>
+
+<Compare
+  caption="Abstract class, interface and protocol"
+  headers={['', 'C# abstract class', 'C# interface', 'Python ABC', 'Python Protocol']}
+  rows={[
+    ['Has code', 'yes', 'rarely (default members)', 'yes', 'no (just signatures)'],
+    ['Has fields / state', 'yes', 'no', 'yes', 'no'],
+    ['A class can use', 'one', 'many', 'several', 'any number'],
+    ['Class must declare it', 'yes (`: Shape`)', 'yes (`: INotifier`)', 'yes (`(Shape)`)', 'no — structural'],
+    ['Checked by', 'compiler', 'compiler', 'runtime (on instantiation)', 'type checker only'],
+  ]}
+/>
+
+## Examples
+
+### Composition over inheritance
+
+Inheritance means "**is a**": a `Dog` is an `Animal`. When the relationship is
+"**has a**", give the class a field instead. Composition keeps classes small and
+lets you swap parts, like the notifier above.
+
+<Pair id="inheritance/composition">
+  A car isn't a kind of engine, so `Car` holds an `Engine` and delegates to it.
+  Changing to an electric engine means passing a different object, not changing
+  a class hierarchy.
+</Pair>
+
+### Equality and hashing
+
+Every class inherits `Equals` / `GetHashCode` (C#) and `__eq__` / `__hash__`
+(Python) from `object`, and the default compares **identity**. To compare by
+value, override **both** methods together: objects that are equal must have the
+same hash, or sets and dictionaries break.
+
+<Pair id="inheritance/equality">
+  After the override, two `Money` objects with the same amount are equal, and a
+  set keeps only one. In Python, defining `__eq__` without `__hash__` makes
+  objects unhashable. Most of the time, a record or dataclass (chapter 9) writes
+  all of this for you.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Forgetting override" wrong="inheritance/m-missing-override" right="inheritance/m-missing-override-fixed">
+  Without `override`, `Dog.Speak` **hides** the base method instead of replacing
+  it. Through an `Animal` reference, the base version runs. The compiler warns
+  (CS0114) — take the warning seriously.
+</Mistake>
+
+<Mistake lang="cs" title="The base constructor needs arguments" wrong="inheritance/m-base-ctor" right="inheritance/m-base-ctor-fixed">
+  `Animal` has no parameterless constructor, so `Dog` must pass a name to it.
+  C# checks this at compile time.
+</Mistake>
+
+<Mistake lang="py" title="Forgetting super().__init__()" wrong="inheritance/m-forgot-super" right="inheritance/m-forgot-super-fixed">
+  `Dog.__init__` replaces `Animal.__init__`, so `self.name` is never set. The
+  error only appears later, when something reads `name`.
+</Mistake>
+
+<Mistake lang="py" title="A misspelled override" wrong="inheritance/m-misspelled-override" right="inheritance/m-misspelled-override-fixed">
+  `speek` is a new method, so `speak` still runs the base version — silently.
+  Python 3.12's `@override` decorator lets mypy report "no base method was found"
+  for such typos. C# catches it without help: `override` on a method that doesn't
+  exist in the base is a compile error.
+</Mistake>
+
+<Mistake lang="py" title="A subclass that can't do what its base promises" wrong="inheritance/m-penguin" right="inheritance/m-penguin-fixed">
+  "A penguin is a bird, and birds fly" breaks as soon as code calls `fly()` on
+  every bird. Model what all subclasses can really do. The same design mistake
+  in C# throws `NotImplementedException`.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="inheritance/p-hiding">
+  The languages disagree on the first line. C#'s `new` **hides** `Hidden`: through
+  a `Base` variable, the base version runs. Only `virtual` + `override` gives
+  polymorphism. Python has no hiding: the object's own method always runs.
+</Predict>
+
+<Predict id="inheritance/p-type-checks">
+  `is` / `isinstance` accept subclasses, so a `Dog` counts as an `Animal`.
+  Comparing the exact type does not. Prefer `is` / `isinstance` unless you
+  really need the exact class.
+</Predict>
+
+<Predict id="inheritance/p-mro" lang="py">
+  In the "diamond" `D(B, C)`, Python looks in `D`, then `B`, then `C`, then `A` —
+  the order in `__mro__`. `B` comes first because it's listed first.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'What must a C# base method have so a derived class can override it?',
+    options: ['`static`', '`virtual` (or `abstract`)', '`sealed`', '`public` is enough'],
+    answer: 1,
+    explanation: 'C# methods are non-virtual by default. The base marks the method `virtual` or `abstract`; the derived class writes `override`. In Python, every method can be overridden.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'inheritance/q-super',
+    lang: 'py',
+    options: ['`B`', '`A`', '`B+A`', '`A+B`'],
+    answer: 2,
+    explanation: '`super().greet()` calls the base class version, which returns `A`. The C# equivalent is `base.Greet()`.',
+  },
+  {
+    question: 'When is "cannot instantiate an abstract class" reported?',
+    options: [
+      'At compile time in both languages',
+      'At runtime in both languages',
+      'At compile time in C#, at runtime in Python',
+      'Never: both languages allow it',
+    ],
+    answer: 2,
+    explanation: 'The C# compiler rejects `new Shape()`. Python raises `TypeError` when the line runs; mypy can report it earlier.',
+  },
+  {
+    question: 'A Python class has a `send(to, msg)` method but doesn\'t mention the `Notifier` protocol. Does it satisfy the protocol?',
+    options: ['No, it must inherit from it', 'Yes: protocols are structural', 'Only at runtime', 'Only if it is a dataclass'],
+    answer: 1,
+    explanation: 'A `Protocol` is satisfied by any class with matching methods. C# interfaces are nominal: the class must declare `: INotifier`.',
+  },
+  {
+    question: 'When should you prefer composition over inheritance?',
+    options: [
+      'When the relationship is "has a" rather than "is a"',
+      'Never; inheritance is always better',
+      'Only in Python',
+      'Only when the base class is abstract',
+    ],
+    answer: 0,
+    explanation: 'A car has an engine; it is not an engine. Holding the part in a field keeps classes small and lets you swap implementations.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Inherit', '`class Dog : Animal`', '`class Dog(Animal):`'],
+    ['Call base constructor', '`: base(name)`', '`super().__init__(name)`'],
+    ['Overridable method', '`public virtual string Speak()`', 'every method'],
+    ['Override', '`public override string Speak()`', 'redefine it (optionally `@override`)'],
+    ['Call base version', '`base.Speak()`', '`super().speak()`'],
+    ['Abstract class', '`abstract class Shape`', '`class Shape(ABC):`'],
+    ['Abstract method', '`public abstract double Area();`', '`@abstractmethod def area(self): ...`'],
+    ['Interface / protocol', '`interface INotifier { … }`', '`class Notifier(Protocol):`'],
+    ['Implement', '`class Email : INotifier`', 'just have the methods'],
+    ['Several bases', 'one class + many interfaces', '`class Duck(Flyer, Swimmer):`'],
+    ['Type test', '`x is Animal`', '`isinstance(x, Animal)`'],
+    ['Prevent inheritance', '`sealed class`', '`@final` (type checkers only)'],
+    ['Value equality', '`Equals` + `GetHashCode`', '`__eq__` + `__hash__`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "I want to model students, teachers and staff. Suggest a design with
+  inheritance and one with composition, in C# and Python, and explain which you
+  would choose and why."
+- "Explain the difference between C#'s `new` and `override` with a short example,
+  then tell me what the Python equivalent of each would be."
+
+<Note type="warning" title="Verify it yourself">
+  AI-generated class hierarchies tend to be too deep ("Vehicle → Car →
+  ElectricCar → …") and sometimes forget `override` in C# or `super().__init__()`
+  in Python. Read the compiler warnings, run mypy, and ask whether each "is a"
+  relationship is really true.
+</Note>
