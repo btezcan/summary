@@ -1,0 +1,23 @@
+---
+// Bir örneğin tüm çıktı bloklarını sırayla gösterir (uyarı, hata, çıktı).
+import Output from './Output.astro';
+import { outputBlocks, type Sample } from './lib/samples';
+
+interface Props {
+	sample: Sample;
+}
+
+const { sample } = Astro.props;
+const blocks = outputBlocks(sample);
+---
+
+{
+	blocks.map((b) => (
+		<Output
+			text={b.text}
+			variant={b.variant}
+			label={b.label}
+			input={b.variant === 'output' ? sample.input : undefined}
+		/>
+	))
+}

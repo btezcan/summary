@@ -1,0 +1,1 @@
+Program.cs(2,19): error CS0165: Use of unassigned local variable 'x'

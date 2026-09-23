@@ -1,0 +1,88 @@
+---
+// Kavram karşılaştırması. İki biçimde kullanılır:
+//
+// 1) Tablo — hücrelerde `kod` ve **kalın** kullanılabilir:
+//   <Compare
+//     caption="class, record ve struct"
+//     headers={['', 'class', 'record', 'struct']}
+//     rows={[['Eşitlik', 'referans', 'değer', 'değer'], ...]}
+//   />
+//
+// 2) Yan yana kod — her biri doğrulanmış bir örnek:
+//   <Compare items={[{ title: 'class', id: 'rse/class-esitlik' }, { title: 'record', id: 'rse/record-esitlik' }]} />
+import { Code } from '@astrojs/starlight/components';
+import Outputs from './Outputs.astro';
+import { inline } from './lib/inline';
+import { getCode, getSample } from './lib/samples';
+
+interface Item {
+	title: string;
+	id: string;
+	file?: string;
+	region?: string;
+}
+
+interface Props {
+	caption?: string;
+	headers?: string[];
+	rows?: string[][];
+	items?: Item[];
+	/** Yan yana kodda çıktıları göster (varsayılan: true). */
+	output?: boolean;
+}
+
+const { caption, headers, rows, items, output = true } = Astro.props;
+if (!rows && !items) throw new Error('<Compare> için "rows" ya da "items" gerekli.');
+if (rows && headers && rows.some((r) => r.length !== headers.length)) {
+	throw new Error(`<Compare>: her satırda ${headers.length} hücre olmalı.`);
+}
+const codeItems = (items ?? []).map((it) => ({
+	...it,
+	sample: getSample(it.id),
+	code: getCode(it.id, it.file, it.region),
+}));
+---
+
+{
+	rows && (
+		<div class="cs-compare cs-compare--table" tabindex="0" role="region" aria-label={caption ?? 'Karşılaştırma tablosu'}>
+			<table>
+				{caption && <caption>{caption}</caption>}
+				{headers && (
+					<thead>
+						<tr>
+							{headers.map((h) => (
+								<th scope="col" set:html={inline(h)} />
+							))}
+						</tr>
+					</thead>
+				)}
+				<tbody>
+					{rows.map((row) => (
+						<tr>
+							{row.map((cell, i) =>
+								i === 0 ? <th scope="row" set:html={inline(cell)} /> : <td set:html={inline(cell)} />,
+							)}
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+	)
+}
+{
+	items && (
+		<figure class="cs-compare cs-compare--code">
+			{caption && <figcaption class="cs-compare__caption">{caption}</figcaption>}
+			<div class="cs-compare__grid" style={`--cs-compare-cols: ${codeItems.length}`}>
+				{codeItems.map((it) => (
+					<div class="cs-compare__item">
+						<p class="cs-compare__title" set:html={inline(it.title)} />
+						<Code code={it.code} lang="csharp" />
+						{output && <Outputs sample={it.sample} />}
+					</div>
+				))}
+			</div>
+		</figure>
+	)
+}

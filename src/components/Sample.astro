@@ -1,0 +1,33 @@
+---
+// Doğrulanmış bir örneği gösterir: kod + gerçek çıktı.
+// Kullanım: <Sample id="turler/deger-referans" />
+//           <Sample id="turler/tasma" region="checked" />
+//           <Sample id="siniflar/banka" file="BankAccount.cs" output={false} />
+import { Code } from '@astrojs/starlight/components';
+import Outputs from './Outputs.astro';
+import { getCode, getSample } from './lib/samples';
+
+interface Props {
+	/** samples/ altındaki klasör yolu, ör. "turler/deger-referans" */
+	id: string;
+	/** Gösterilecek dosya (varsayılan Program.cs). */
+	file?: string;
+	/** Yalnızca "// #region ad" bölgesini göster. */
+	region?: string;
+	/** Kod bloğu başlığı (varsayılan: dosya adı). */
+	title?: string;
+	/** Çıktıyı göster (varsayılan: true). */
+	output?: boolean;
+	/** Vurgulanacak satırlar, ör. "3" ya da "{2-4}" (Expressive Code sözdizimi). */
+	mark?: string;
+}
+
+const { id, file = 'Program.cs', region, title, output = true, mark } = Astro.props;
+const sample = getSample(id);
+const code = getCode(id, file, region);
+---
+
+<div class="cs-sample">
+	<Code code={code} lang="csharp" title={title ?? file} meta={mark ? `mark=${mark}` : undefined} />
+	{output && <Outputs sample={sample} />}
+</div>

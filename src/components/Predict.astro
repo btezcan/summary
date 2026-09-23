@@ -1,0 +1,35 @@
+---
+// "Çıktıyı tahmin et" alıştırması. Cevap <details> içinde saklıdır; JavaScript
+// gerekmez. İçerideki slot açıklamadır.
+// Kullanım:
+//   <Predict id="turler/tahmin-byte">
+//     `byte` 255'ten sonra 0'a sarar, çünkü ...
+//   </Predict>
+import { Code } from '@astrojs/starlight/components';
+import Outputs from './Outputs.astro';
+import { getCode, getSample } from './lib/samples';
+
+interface Props {
+	id: string;
+	file?: string;
+	region?: string;
+	/** Soru metni (varsayılan: "Bu program ne yazdırır?"). */
+	question?: string;
+}
+
+const { id, file = 'Program.cs', region, question = 'Bu program ne yazdırır?' } = Astro.props;
+const sample = getSample(id);
+const code = getCode(id, file, region);
+---
+
+<section class="cs-predict" aria-label="Çıktıyı tahmin et">
+	<p class="cs-predict__question">{question}</p>
+	<Code code={code} lang="csharp" />
+	<details class="cs-predict__answer">
+		<summary>Cevabı göster</summary>
+		<div class="cs-predict__content">
+			<Outputs sample={sample} />
+			{Astro.slots.has('default') && <div class="cs-predict__explain"><slot /></div>}
+		</div>
+	</details>
+</section>

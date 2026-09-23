@@ -1,0 +1,48 @@
+---
+// Sık yapılan hata: "Hatalı / Doğru" karşılaştırması. Her iki taraf da
+// doğrulanmış bir örnektir; hatalı tarafın derleme hatası, istisnası ya da
+// yanlış çıktısı gerçekten üretilmiş haliyle gösterilir.
+// Kullanım:
+//   <Mistake wrong="turler/hata-atanmamis" right="turler/hata-atanmamis-duzeltme">
+//     Yerel değişken kullanılmadan önce bir değer almalıdır.
+//   </Mistake>
+import { Code } from '@astrojs/starlight/components';
+import Outputs from './Outputs.astro';
+import { getCode, getSample } from './lib/samples';
+
+interface Props {
+	wrong: string;
+	right: string;
+	wrongRegion?: string;
+	rightRegion?: string;
+	/** Kısa başlık, ör. "Atanmamış değişken". */
+	title?: string;
+}
+
+const { wrong, right, wrongRegion, rightRegion, title } = Astro.props;
+const sides = [
+	{ kind: 'wrong', label: 'Hatalı', sample: getSample(wrong), code: getCode(wrong, 'Program.cs', wrongRegion) },
+	{ kind: 'right', label: 'Doğru', sample: getSample(right), code: getCode(right, 'Program.cs', rightRegion) },
+];
+---
+
+<section class="cs-mistake" aria-label={title ? `Sık yapılan hata: ${title}` : 'Sık yapılan hata'}>
+	{title && <p class="cs-mistake__title">{title}</p>}
+	<div class="cs-mistake__grid">
+		{
+			sides.map((s) => (
+				<div class="cs-mistake__side" data-kind={s.kind}>
+					<p class="cs-mistake__label">
+						<span class="cs-mistake__icon" aria-hidden="true">
+							{s.kind === 'wrong' ? '✗' : '✓'}
+						</span>
+						{s.label}
+					</p>
+					<Code code={s.code} lang="csharp" />
+					<Outputs sample={s.sample} />
+				</div>
+			))
+		}
+	</div>
+	{Astro.slots.has('default') && <div class="cs-mistake__explain"><slot /></div>}
+</section>

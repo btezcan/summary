@@ -1,0 +1,38 @@
+---
+// Program çıktısı bloğu. Koddan görsel olarak ayrı durur ve sözdizimi
+// renklendirmesi yoktur. Metin normalde <Sample>/<Predict>/<Mistake> üzerinden
+// doğrulanmış çıktı dosyalarından gelir; elle yazılmış çıktı kullanma.
+import type { OutputBlock } from './lib/samples';
+
+interface Props {
+	text: string;
+	variant?: OutputBlock['variant'];
+	label?: string;
+	/** Programa klavyeden verilen girdi (input.txt). */
+	input?: string;
+}
+
+const defaultLabels: Record<OutputBlock['variant'], string> = {
+	output: 'Çıktı',
+	warning: 'Derleyici uyarısı',
+	'compile-error': 'Derleme hatası',
+	exception: 'Çalışma zamanı hatası',
+};
+
+const { text, variant = 'output', input } = Astro.props;
+const label = Astro.props.label ?? defaultLabels[variant];
+const trimmedInput = input?.replace(/\s+$/, '');
+---
+
+<figure class="cs-output not-content" data-variant={variant}>
+	<figcaption class="cs-output__label">{label}</figcaption>
+	{
+		trimmedInput && (
+			<p class="cs-output__input">
+				<span class="cs-output__input-label">Klavyeden girilen:</span>
+				<code>{trimmedInput}</code>
+			</p>
+		)
+	}
+	<pre class="cs-output__text" tabindex="0"><code>{text === '' ? '(çıktı yok)' : text}</code></pre>
+</figure>

@@ -1,0 +1,189 @@
+---
+// Çoktan seçmeli mini quiz. Sorular MDX içinde veri olarak yazılır:
+//
+//   <Quiz questions={[
+//     {
+//       question: '`5 / 2` ifadesinin değeri nedir?',
+//       options: ['2.5', '2', '3', 'Derleme hatası'],
+//       answer: 1,                       // doğru seçeneğin sırası (0'dan başlar)
+//       explanation: 'İki `int` bölününce sonuç da `int` olur; ondalık kısım atılır.',
+//       sample: 'turler/quiz-bolme',     // (isteğe bağlı) soruda gösterilecek doğrulanmış kod
+//     },
+//   ]} />
+//
+// JavaScript yoksa her sorunun altında "Cevabı göster" (<details>) çalışır.
+// JavaScript varsa: seçenek seçilir → "Kontrol et" → anında geri bildirim ve açıklama,
+// tüm sorular bitince puan gösterilir.
+import { Code } from '@astrojs/starlight/components';
+import { inline } from './lib/inline';
+import { getCode, getSample } from './lib/samples';
+
+interface Question {
+	question: string;
+	options: string[];
+	answer: number;
+	explanation: string;
+	sample?: string;
+	region?: string;
+}
+
+interface Props {
+	questions: Question[];
+	title?: string;
+}
+
+const { questions, title = 'Mini Quiz' } = Astro.props;
+const letters = 'ABCDEFGH';
+
+questions.forEach((q, i) => {
+	const where = `<Quiz> soru ${i + 1}`;
+	if (q.options.length < 2 || q.options.length > letters.length) throw new Error(`${where}: 2–8 seçenek olmalı.`);
+	if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.options.length) {
+		throw new Error(`${where}: "answer" geçerli bir seçenek sırası değil (${q.answer}).`);
+	}
+	if (q.sample) getSample(q.sample); // doğrulanmış olduğundan emin ol
+});
+
+// Aynı sayfada birden fazla quiz olabilir; radyo grubu adları çakışmamalı.
+const uid = 'q' + Math.random().toString(36).slice(2, 8);
+---
+
+<cs-quiz class="cs-quiz" data-total={questions.length}>
+	<ol class="cs-quiz__list" aria-label={title}>
+		{
+			questions.map((q, i) => (
+				<li class="cs-quiz__item" data-answer={q.answer}>
+					<fieldset class="cs-quiz__fieldset">
+						<legend class="cs-quiz__question">
+							<span class="cs-quiz__number">Soru {i + 1}.</span>{' '}
+							<span set:html={inline(q.question)} />
+						</legend>
+						{q.sample && <Code code={getCode(q.sample, 'Program.cs', q.region)} lang="csharp" />}
+						<div class="cs-quiz__options">
+							{q.options.map((opt, j) => (
+								<label class="cs-quiz__option" data-index={j}>
+									<input type="radio" name={`${uid}-${i}`} value={j} />
+									<span class="cs-quiz__letter" aria-hidden="true">
+										{letters[j]}
+									</span>
+									<span class="cs-quiz__text" set:html={inline(opt)} />
+								</label>
+							))}
+						</div>
+					</fieldset>
+					<button type="button" class="cs-quiz__check" hidden disabled>
+						Kontrol et
+					</button>
+					<p class="cs-quiz__feedback" aria-live="polite" hidden />
+					<details class="cs-quiz__reveal">
+						<summary>Cevabı göster</summary>
+						<div class="cs-quiz__explanation">
+							<p>
+								<strong>
+									Doğru cevap: {letters[q.answer]}) <span set:html={inline(q.options[q.answer])} />
+								</strong>
+							</p>
+							<p set:html={inline(q.explanation)} />
+						</div>
+					</details>
+				</li>
+			))
+		}
+	</ol>
+	<div class="cs-quiz__footer" hidden>
+		<p class="cs-quiz__score" aria-live="polite"></p>
+		<button type="button" class="cs-quiz__reset">Yeniden başla</button>
+	</div>
+</cs-quiz>
+
+<script>
+	class CsQuiz extends HTMLElement {
+		connectedCallback() {
+			if (this.dataset.enhanced) return;
+			this.dataset.enhanced = 'true';
+
+			for (const item of this.items) {
+				const check = item.querySelector<HTMLButtonElement>('.cs-quiz__check')!;
+				const reveal = item.querySelector<HTMLDetailsElement>('.cs-quiz__reveal')!;
+				// JavaScript varken açıklama geri bildirimle birlikte gösterilir.
+				reveal.hidden = true;
+				check.hidden = false;
+
+				item.addEventListener('change', () => {
+					if (!item.dataset.state) check.disabled = !this.selected(item);
+				});
+				check.addEventListener('click', () => this.answer(item));
+			}
+
+			this.querySelector('.cs-quiz__reset')!.addEventListener('click', () => this.reset());
+		}
+
+		get items() {
+			return [...this.querySelectorAll<HTMLLIElement>('.cs-quiz__item')];
+		}
+
+		selected(item: HTMLElement) {
+			return item.querySelector<HTMLInputElement>('input[type="radio"]:checked');
+		}
+
+		answer(item: HTMLElement) {
+			const chosen = this.selected(item);
+			if (!chosen) return;
+			const correct = Number(item.dataset.answer);
+			const isCorrect = Number(chosen.value) === correct;
+
+			item.dataset.state = isCorrect ? 'correct' : 'incorrect';
+			for (const input of item.querySelectorAll<HTMLInputElement>('input[type="radio"]')) input.disabled = true;
+			item.querySelector(`.cs-quiz__option[data-index="${correct}"]`)!.setAttribute('data-correct', '');
+			if (!isCorrect) chosen.closest('.cs-quiz__option')!.setAttribute('data-wrong', '');
+
+			const check = item.querySelector<HTMLButtonElement>('.cs-quiz__check')!;
+			check.hidden = true;
+
+			const feedback = item.querySelector<HTMLElement>('.cs-quiz__feedback')!;
+			const explanation = item.querySelector('.cs-quiz__explanation')!.cloneNode(true) as HTMLElement;
+			feedback.replaceChildren();
+			const verdict = document.createElement('p');
+			verdict.className = 'cs-quiz__verdict';
+			verdict.textContent = isCorrect ? 'Doğru.' : 'Yanlış.';
+			feedback.append(verdict, ...explanation.childNodes);
+			feedback.hidden = false;
+
+			this.updateScore();
+		}
+
+		updateScore() {
+			const items = this.items;
+			const answered = items.filter((i) => i.dataset.state);
+			if (answered.length < items.length) return;
+			const right = answered.filter((i) => i.dataset.state === 'correct').length;
+			const footer = this.querySelector<HTMLElement>('.cs-quiz__footer')!;
+			footer.querySelector('.cs-quiz__score')!.textContent = `Puan: ${right} / ${items.length}`;
+			footer.hidden = false;
+		}
+
+		reset() {
+			for (const item of this.items) {
+				delete item.dataset.state;
+				for (const input of item.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {
+					input.disabled = false;
+					input.checked = false;
+				}
+				for (const opt of item.querySelectorAll('.cs-quiz__option')) {
+					opt.removeAttribute('data-correct');
+					opt.removeAttribute('data-wrong');
+				}
+				const check = item.querySelector<HTMLButtonElement>('.cs-quiz__check')!;
+				check.hidden = false;
+				check.disabled = true;
+				const feedback = item.querySelector<HTMLElement>('.cs-quiz__feedback')!;
+				feedback.hidden = true;
+				feedback.replaceChildren();
+			}
+			this.querySelector<HTMLElement>('.cs-quiz__footer')!.hidden = true;
+			this.querySelector<HTMLInputElement>('input[type="radio"]')?.focus();
+		}
+	}
+
+	customElements.define('cs-quiz', CsQuiz);
+</script>

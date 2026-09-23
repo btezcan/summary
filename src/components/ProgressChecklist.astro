@@ -1,0 +1,98 @@
+---
+// Ana sayfadaki ilerleme listesi: öğrenci gözden geçirdiği bölümleri işaretler.
+// İşaretler yalnızca bu tarayıcıda (localStorage) saklanır. Depolama kapalı ya da
+// boşsa liste yine çalışır, sadece işaretler kalıcı olmaz.
+import { allChapters } from '../data/chapters.mjs';
+import { withBase } from './lib/inline';
+---
+
+<cs-progress class="cs-progress" data-total={allChapters.length}>
+	<p class="cs-progress__summary" aria-live="polite">
+		<span class="cs-progress__count">0</span> / {allChapters.length} bölüm gözden geçirildi
+	</p>
+	<ol class="cs-progress__list">
+		{
+			allChapters.map((c) => (
+				<li class="cs-progress__item">
+					<input
+						type="checkbox"
+						id={`progress-${c.slug}`}
+						value={c.slug}
+						disabled
+						aria-label={`${c.label} bölümünü gözden geçirdim`}
+					/>
+					<a href={withBase(c.slug)}>
+						<span class="cs-progress__number">{c.number}.</span> {c.label}
+					</a>
+				</li>
+			))
+		}
+	</ol>
+	<p class="cs-progress__storage-note" hidden>
+		Tarayıcınız yerel depolamaya izin vermiyor; işaretler sayfa yenilenince kaybolur.
+	</p>
+	<button type="button" class="cs-progress__reset" hidden>İşaretleri temizle</button>
+	<noscript><p>İşaretleme için JavaScript gerekir; bölüm bağlantıları yine de çalışır.</p></noscript>
+</cs-progress>
+
+<script>
+	const STORAGE_KEY = 'csharp-rehber:reviewed';
+
+	function load(): string[] {
+		try {
+			const raw = localStorage.getItem(STORAGE_KEY);
+			const parsed = raw ? JSON.parse(raw) : [];
+			return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : [];
+		} catch {
+			return [];
+		}
+	}
+
+	function save(slugs: string[]): boolean {
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(slugs));
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	class CsProgress extends HTMLElement {
+		connectedCallback() {
+			if (this.dataset.enhanced) return;
+			this.dataset.enhanced = 'true';
+
+			const reviewed = new Set(load());
+			for (const box of this.boxes) {
+				box.disabled = false;
+				box.checked = reviewed.has(box.value);
+				box.addEventListener('change', () => this.persist());
+			}
+			const reset = this.querySelector<HTMLButtonElement>('.cs-progress__reset')!;
+			reset.hidden = false;
+			reset.addEventListener('click', () => {
+				for (const box of this.boxes) box.checked = false;
+				this.persist();
+			});
+			this.updateCount();
+		}
+
+		get boxes() {
+			return [...this.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')];
+		}
+
+		persist() {
+			const ok = save(this.boxes.filter((b) => b.checked).map((b) => b.value));
+			this.querySelector<HTMLElement>('.cs-progress__storage-note')!.hidden = ok;
+			this.updateCount();
+		}
+
+		updateCount() {
+			const n = this.boxes.filter((b) => b.checked).length;
+			this.querySelector('.cs-progress__count')!.textContent = String(n);
+			this.dataset.done = String(n);
+		}
+	}
+
+	customElements.define('cs-progress', CsProgress);
+</script>

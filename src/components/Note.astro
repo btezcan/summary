@@ -1,0 +1,27 @@
+---
+// Bilgi kutusu.
+//   tip      İpucu
+//   warning  Dikkat
+//   version  Sürüm notu (ör. version="C# 13")
+//   history  "Eski kodda görebilirsiniz" — güncel olmayan ama karşılaşılabilecek şeyler
+interface Props {
+	type?: 'tip' | 'warning' | 'version' | 'history';
+	title?: string;
+	version?: string;
+}
+
+const { type = 'tip', version } = Astro.props;
+
+const defaultTitles = {
+	tip: 'İpucu',
+	warning: 'Dikkat',
+	version: version ? `Sürüm notu: ${version}` : 'Sürüm notu',
+	history: 'Eski kodda görebilirsiniz',
+};
+const title = Astro.props.title ?? defaultTitles[type];
+---
+
+<aside class="cs-note" data-type={type} aria-label={title}>
+	<p class="cs-note__title">{title}</p>
+	<div class="cs-note__body"><slot /></div>
+</aside>

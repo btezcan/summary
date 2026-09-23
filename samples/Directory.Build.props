@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    Tüm örnekler için ortak ayarlar (tek dosyalık uygulamalar ve projeler).
+    Site varsayılan olarak C# 12'ye kadar öğretir: daha yeni bir özellik
+    derleme hatası verir. Yeni özellik kullanan örnek, sample.json içinde
+    "langVersion" belirtir ve sayfada <Note type="version"> ile işaretlenir.
+  -->
+  <PropertyGroup>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>

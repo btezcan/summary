@@ -1,0 +1,3 @@
+#!/bin/sh
+# Bkz. verify-samples.mjs — tüm C# örneklerini derler, çalıştırır, çıktıları karşılaştırır.
+exec node "$(dirname "$0")/verify-samples.mjs" "$@"
