@@ -1,0 +1,1 @@
+<__main__.Point object at 0x…>

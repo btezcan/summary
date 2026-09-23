@@ -1,0 +1,1 @@
+Program.cs(2,5): error CS0122: 'Account.balance' is inaccessible due to its protection level

@@ -1,0 +1,4 @@
+False
+True
+Ayşe: 120.00 TL
+120

@@ -1,5 +1,298 @@
 ---
-title: "Classes and Objects"
+title: Classes and Objects
+description: Classes, objects and references, fields and properties, access control, constructors, static members and ToString/__str__ — in C# and Python side by side.
 ---
 
-This chapter is being written.
+import { Pair, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- A **class** describes a kind of object; `new Student(...)` (C#) and
+  `Student(...)` (Python) create **objects**. Variables hold **references**:
+  two variables can point to one object.
+- C# separates **fields** (data) from **properties** (controlled access). Python
+  starts with plain **attributes** and adds a `@property` when it needs control —
+  without changing the callers.
+- **Access control:** C# **enforces** `private`, `protected` and `public`.
+  Python only has a **convention**: `_name` means "internal, don't touch".
+- **Constructors:** C# constructors share the class name and can be overloaded
+  and chained. Python has one `__init__`; alternative constructors are
+  `@classmethod`s.
+- `static` members (C#) belong to the class, not to an object. Python has class
+  attributes, `@classmethod`, `@staticmethod` — and often just a module-level
+  function.
+
+## Concept
+
+### Classes, objects and references
+
+A class bundles **data** with the **behavior** that works on it. Creating an
+object gives you a reference to it, in both languages. Assigning the reference
+to another variable doesn't copy the object.
+
+<Pair id="classes/class-object">
+  Two variables, one counter: both increments went to the same object. Python
+  methods receive the object explicitly as their first parameter, `self`; C#
+  passes it implicitly as `this`.
+</Pair>
+
+### Fields, properties and attributes
+
+A C# **field** is a variable inside the object. A **property** looks like a field
+to the caller but runs code in `get` and `set`, so the class can validate values,
+compute them on the fly, or make them read-only. Public fields are avoided in C#
+because you can't add that control later without changing every caller.
+
+Python starts with plain **attributes** (`self.celsius = 0.0`). When you later
+need validation, you turn the attribute into a `@property` with the same name,
+and every caller keeps working. That's why Python code rarely writes getters
+and setters up front.
+
+<Pair id="classes/properties">
+  `Celsius` / `celsius` validate on assignment; `Fahrenheit` / `fahrenheit` are
+  computed and have no setter, so assigning to them fails. Note C#'s `throw`
+  **expression** inside the setter, and the `_celsius` / `self._celsius`
+  backing variable that stores the real value.
+</Pair>
+
+C# **auto-properties** (`public int Year { get; set; }`) create the backing
+field for you. `{ get; private set; }` lets only the class change the value, and
+`init` allows setting it only while the object is created.
+
+### Access control
+
+<Compare
+  caption="Access modifiers and their Python counterparts"
+  headers={['C#', 'Who can use it', 'Python convention']}
+  rows={[
+    ['`public`', 'everyone', '`name`'],
+    ['`private` (default for members)', 'only this class', '`_name` (not enforced)'],
+    ['`protected`', 'this class and derived classes', '`_name` (not enforced)'],
+    ['`internal`', 'code in the same project (assembly)', '— (module-level `_name`)'],
+  ]}
+/>
+
+<Pair id="classes/access">
+  The C# compiler refuses to touch a private field. Python lets the caller write
+  `acc._balance = -500`: the underscore is a request, not a lock. Python's
+  `__name` (two underscores) renames the attribute to `_ClassName__name`, which
+  prevents accidental clashes in subclasses — but it isn't security either.
+</Pair>
+
+### Constructors
+
+A C# **constructor** has the class's name and no return type. A class can have
+several constructors, and one can call another with `: this(...)`. Python has a
+single initializer, `__init__`; for "another way to create the object" it uses a
+**class method** that calls the class.
+
+<Pair id="classes/constructors">
+  `new Rectangle(4)` and `Rectangle.square(4)` both build a square. The named
+  class method is often clearer than an overload: the call says what it creates.
+</Pair>
+
+<Pair id="classes/initializers">
+  C#'s **object initializer** `{ Name = "Ali" }` sets properties after
+  construction. `required` (C# 11) forces callers to set `Name`, and `init`
+  makes it unchangeable afterwards. Python gets the same effect with keyword
+  arguments and default values in `__init__`.
+</Pair>
+
+<Note type="version" version="C# 12">
+  **Primary constructors** put the parameters in the class header:
+  `class Point(int x, int y) { ... }`. They're used in several examples on this
+  site. Older code writes a constructor method that copies each parameter into a
+  field or property.
+</Note>
+
+### Static members
+
+A `static` member belongs to the **class**, not to any one object — for example a
+counter shared by all students. A `static class` can have only static members;
+it is a container for helper methods.
+
+<Pair id="classes/static-members">
+  Python's class attribute `_next_id` is shared the same way. Write
+  `Student._next_id += 1` — through the class — to change it (see Common
+  Mistakes). `@classmethod` receives the class as `cls`, the counterpart of a
+  static method that needs class data.
+</Pair>
+
+<Pair id="classes/utilities">
+  C# requires every method to live in a type, so helpers go into a `static class`.
+  Python has **modules**: a plain function in a `.py` file is the idiomatic
+  answer. `@staticmethod` exists, but it's needed less often than you'd expect
+  from C#.
+</Pair>
+
+### Text for an object
+
+<Pair id="classes/to-string">
+  `ToString()` is what `Console.WriteLine` and interpolation use. Python has two
+  methods: `__str__` for people (`print`, f-strings) and `__repr__` for
+  developers (the REPL, the debugger, lists).
+</Pair>
+
+<Note type="history" title="Finalizers and __del__">
+  C# finalizers (`~Student()`) and Python's `__del__` run when the garbage
+  collector removes an object — at an unpredictable time. Don't use them to close
+  files or connections; use `using` and `with` (chapter 15).
+</Note>
+
+## Examples
+
+### A bank account that protects its balance
+
+<Pair id="classes/bank-account">
+  The balance can only change through `Deposit` and `TryWithdraw`, which enforce
+  the rules. C# makes that airtight with `private set`. In Python the read-only
+  `balance` property and the underscore in `_balance` signal the same design —
+  a caller could still write `acc._balance`, but everyone reading that code knows
+  it breaks the rules. (These classes are shown one below the other because
+  their lines are longer.)
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Using an instance field from static Main" wrong="classes/m-static-context" right="classes/m-static-context-fixed">
+  `static` code has no `this`, so it can't reach instance fields directly.
+  Create an object first, or make the member `static` if it really is shared.
+</Mistake>
+
+<Mistake lang="cs" title="Using an object that was never created" wrong="classes/m-null-object" right="classes/m-null-object-fixed">
+  The variable holds `null`, not a `Student`. The compiler warned (CS8602)
+  before the program crashed. Chapter 11 covers null safety.
+</Mistake>
+
+<Mistake lang="cs" title="A property that returns itself" wrong="classes/m-recursive-property" right="classes/m-recursive-property-fixed">
+  `get => Name` calls the property again, forever, until the stack overflows and
+  the process dies. Store the value in a separate field, or use an
+  auto-property `{ get; set; }`. The same typo in a Python `@property` raises
+  `RecursionError`.
+</Mistake>
+
+<Mistake lang="py" title="Forgetting self" wrong="classes/m-forgot-self" right="classes/m-forgot-self-fixed">
+  Python passes the object as the first argument of every method call, so the
+  method must accept it. The error message counts it: "takes 0 positional
+  arguments but 1 was given".
+</Mistake>
+
+<Mistake lang="py" title="self.count += 1 on a class attribute" wrong="classes/m-instance-vs-class" right="classes/m-instance-vs-class-fixed">
+  Reading `self._next_id` finds the class attribute, but assigning to
+  `self._next_id` creates a new attribute **on the object**. The shared counter
+  never changes, so every student gets id 1.
+</Mistake>
+
+<Mistake lang="py" title="A typo creates a new attribute" wrong="classes/m-typo-attribute" right="classes/m-typo-attribute-fixed">
+  Python objects accept new attributes at any time, so `s.nmae = "Can"` silently
+  adds one. mypy catches the typo; `__slots__` makes Python itself reject it
+  with an `AttributeError`. In C#, the misspelled member is a compile error.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="classes/p-equality">
+  Without special code, `==` on objects compares **references** in both
+  languages: `a` and `b` are different objects with equal data, `c` is the same
+  object as `a`. Records and dataclasses change this (chapter 9).
+</Predict>
+
+<Predict id="classes/p-default-string">
+  C#'s default `ToString()` returns the type name. Python's default shows the
+  class and the object's memory address, which changes on every run (shown here
+  as `0x…`). Override `ToString` / `__str__` to get useful text.
+</Predict>
+
+<Predict id="classes/p-shared-list" lang="py">
+  `members` is a class attribute, and `append` changes that one list in place — so
+  every `Team` shares it. Create per-object lists in `__init__`
+  (`self.members = []`).
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'In Python, what does a leading underscore in `self._balance` mean?',
+    options: [
+      'The attribute is private; outside access is an error',
+      'It is a convention: "internal, please don\'t use it from outside"',
+      'The attribute is read-only',
+      'It makes the attribute static',
+    ],
+    answer: 1,
+    explanation: 'Python doesn\'t enforce access control. `_name` is a signal to other programmers (and tools); C#\'s `private` is enforced by the compiler.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'classes/q-private',
+    lang: 'py',
+    options: ['`10`', 'An `AttributeError`', '`None`', '`_Wallet__money`'],
+    answer: 0,
+    explanation: 'Two leading underscores trigger name mangling: `__money` is stored as `_Wallet__money`. It avoids clashes in subclasses, but it doesn\'t hide anything.',
+  },
+  {
+    question: 'How does Python offer a second way to construct an object, like a second C# constructor?',
+    options: [
+      'Define `__init__` twice',
+      'A `@classmethod` that calls the class',
+      'A method named after the class',
+      'It can\'t',
+    ],
+    answer: 1,
+    explanation: 'A second `__init__` would replace the first. A class method such as `Rectangle.square(4)` returns `cls(side, side)`.',
+  },
+  {
+    question: 'Which C# member can be read by everyone but changed only by the class itself?',
+    options: [
+      '`public decimal Balance;`',
+      '`public decimal Balance { get; private set; }`',
+      '`private decimal Balance { get; set; }`',
+      '`public static decimal Balance;`',
+    ],
+    answer: 1,
+    explanation: 'The public getter lets everyone read; the private setter restricts changes to code inside the class.',
+  },
+  {
+    question: 'Which Python method controls what `print(obj)` shows?',
+    options: ['`__repr__`', '`__str__`', '`ToString`', '`__print__`'],
+    answer: 1,
+    explanation: '`print` and f-strings use `__str__` (falling back to `__repr__` if `__str__` is missing). Containers such as lists show each item\'s `__repr__`.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Define a class', '`class Student { … }`', '`class Student:`'],
+    ['Create an object', '`var s = new Student("Ali");`', '`s = Student("Ali")`'],
+    ['Constructor', '`public Student(string name) { … }`', '`def __init__(self, name):`'],
+    ['The current object', '`this` (implicit)', '`self` (explicit parameter)'],
+    ['Field / attribute', '`private int _count;`', '`self._count = 0`'],
+    ['Auto-property', '`public string Name { get; set; }`', 'plain attribute `self.name`'],
+    ['Read-only computed', '`public double Area => W * H;`', '`@property def area(self):`'],
+    ['Validation on set', 'property `set { … }`', '`@area.setter`'],
+    ['Private', '`private` (enforced)', '`_name` (convention)'],
+    ['Shared by all objects', '`static int _next;`', 'class attribute `_next = 0`'],
+    ['Alternative constructor', 'overload, `: this(…)`', '`@classmethod def square(cls, …)`'],
+    ['Text for printing', '`override string ToString()`', '`__str__`, `__repr__`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Here is my C# class with properties and a private setter. Show me the
+  idiomatic Python version — not a line-by-line translation — and explain each
+  difference in design."
+- "Review this class for encapsulation problems. List them, but don't rewrite
+  the class."
+
+<Note type="warning" title="Verify it yourself">
+  AI translations from C# to Python often produce Java-style getters and setters
+  (`get_balance()`, `set_balance()`) instead of attributes and `@property`, or
+  forget `self`. Check that the Python version is idiomatic, and run mypy on it.
+</Note>

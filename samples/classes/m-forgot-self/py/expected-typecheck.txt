@@ -1,0 +1,2 @@
+main.py:2: error: Method must have at least one argument. Did you forget the "self" argument?  [misc]
+main.py:7: error: Attribute function "greet" with type "Callable[[], Any]" does not accept self argument  [misc]

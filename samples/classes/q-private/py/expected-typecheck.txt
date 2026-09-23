@@ -1,0 +1,1 @@
+main.py:7: error: "Wallet" has no attribute "_Wallet__money"  [attr-defined]

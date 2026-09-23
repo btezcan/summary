@@ -1,0 +1,1 @@
+main.py:7: error: "Student" has no attribute "nmae"  [attr-defined]
