@@ -1,0 +1,1 @@
+Program.cs(5,5): error CS8510: The pattern is unreachable. It has already been handled by a previous arm of the switch expression or it is impossible to match.

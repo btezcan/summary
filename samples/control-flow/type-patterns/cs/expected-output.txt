@@ -1,0 +1,4 @@
+big int 42
+text 'hi'
+something else
+int 7

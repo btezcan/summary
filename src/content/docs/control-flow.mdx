@@ -1,5 +1,287 @@
 ---
-title: "Control Flow"
+title: Control Flow
+description: if / else, switch and match, pattern matching, for / while / do-while loops, break and continue — and the loop behaviors that differ between C# and Python.
 ---
 
-This chapter is being written.
+import { Pair, Sample, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- **Blocks:** C# uses braces `{ }`, Python uses indentation. In Python the
+  indentation *is* the program: a line moved left leaves the loop silently.
+- `if / else if / else` ↔ `if / elif / else`. C# `switch` (statement and
+  expression) ↔ Python `match` (3.10+). Both support patterns and guards
+  (`when` / `if`).
+- **Counting loops:** `for (int i = 0; i < n; i++)` ↔ `for i in range(n)`.
+  `range` **excludes** its end. Python has no `do-while`; use `while True`
+  with `break`.
+- Changing the loop variable inside the loop **affects** a C# `for` loop but
+  **not** a Python `for` loop.
+- `break` and `continue` work the same. Python loops can have an `else` block
+  that runs only when the loop was not stopped by `break`.
+
+## Concept
+
+### Blocks: braces and indentation
+
+In C#, braces define a block; indentation is only for readers. In Python,
+indentation defines the block, and a colon `:` starts it. Both languages expect
+four spaces per level by convention.
+
+<Pair id="control-flow/if-else">
+  `else if` is two keywords in C#; Python has the single keyword `elif`. C#
+  needs parentheses around the condition; Python doesn't.
+</Pair>
+
+<Note type="tip">
+  Always use braces in C#, even for one-line bodies. Without them, adding a
+  second line to an `if` looks right but runs unconditionally — see the stray
+  semicolon mistake below for a related trap.
+</Note>
+
+### Choosing between many cases
+
+C# has two forms. The **switch statement** runs code for a matching `case`. The
+**switch expression** (`value switch { ... }`) produces a value. Python's
+**`match`** statement (Python 3.10) covers both uses.
+
+<Pair id="control-flow/switch-match">
+  C# lets two `case` labels share one body when the first is empty. Python
+  writes `case 6 | 7:`. `case _:` is Python's `default`. Each C# `case` must end
+  with `break` (or `return`, `throw`); Python has no fall-through at all, so it
+  needs no `break`.
+</Pair>
+
+Patterns make these much more powerful. C# has **relational patterns**
+(`>= 90`) and combines them with `and`, `or` and `not`. Python's `match` has no
+relational patterns; it uses **guards** instead (`case s if s >= 90:`).
+
+<Pair id="control-flow/letter-grade">
+  The C# switch expression reads like the grading table itself. The idiomatic
+  Python version is a plain loop over a list of limits — shorter than a `match`
+  with a guard on every case (below). The grading scale is only an example;
+  universities differ.
+</Pair>
+
+<Sample id="control-flow/letter-grade-match" lang="py" />
+
+When every case needs a guard, `match` adds nothing over `if` / `elif`. Use
+`match` for **shapes and types**, not for number ranges.
+
+### Type patterns
+
+Both languages can test the type of a value and give it a name in one step.
+
+<Pair id="control-flow/type-patterns">
+  C#'s `int n when n > 40` and Python's `int(n) if n > 40` do the same thing:
+  check the type, bind the name, test the guard. Arms are tried in order, so the
+  specific case must come before the general one. (In Python, `True` would also
+  match `int(n)`, because `bool` is a subclass of `int`.)
+</Pair>
+
+### Loops
+
+| Situation | C# | Python |
+|---|---|---|
+| Repeat a known number of times | `for (int i = 0; i < n; i++)` | `for i in range(n)` |
+| Visit every item | `foreach (var x in items)` | `for x in items` |
+| Item and its index | `for` with an index | `for i, x in enumerate(items)` |
+| Two sequences together | `a.Zip(b)` | `zip(a, b)` |
+| Repeat while a condition holds | `while (cond)` | `while cond:` |
+| Run the body at least once | `do { } while (cond);` | `while True:` … `break` |
+
+<Pair id="control-flow/loops">
+  Python's `for` always walks over a sequence; `range(3)` is the sequence
+  `0, 1, 2`. `enumerate` gives you the index without managing a counter.
+  `print(..., end=" ")` replaces the default line break, like C#'s
+  `Console.Write`.
+</Pair>
+
+<Pair id="control-flow/ranges">
+  `range(start, stop, step)` stops **before** `stop`, in both directions. The
+  C# loops spell out the same boundaries with `<=` and `>`.
+</Pair>
+
+<Pair id="control-flow/zip">
+  `Zip` (C#, a LINQ method) and `zip` (Python) pair up items by position and stop
+  at the shorter sequence.
+</Pair>
+
+## Examples
+
+### At least once: do-while
+
+C# has a loop that checks its condition **after** the body. Python doesn't; the
+idiom is an endless loop with a `break`.
+
+<Pair id="control-flow/ask-until-valid">
+  The user typed `abc`, then `42`, then `7`; both programs asked three times.
+  The Python loop reads well: "repeat forever; when the input is good, stop."
+</Pair>
+
+### break, continue, and Python's loop else
+
+<Pair id="control-flow/break-continue">
+  `continue` skips to the next iteration; `break` leaves the loop. Identical in
+  both languages.
+</Pair>
+
+A Python loop can have an `else` block. It runs when the loop ends **normally**
+— not when it was stopped by `break`. That removes the "found" flag that C# needs
+for a search.
+
+<Pair id="control-flow/search-else">
+  Read Python's `for … else` as "for … if no break". It surprises most
+  programmers the first time; a comment like the one above helps readers. C# has
+  `goto` too, but you should never need it for loops.
+</Pair>
+
+<Pair id="control-flow/nested">
+  Nested loops look the same. `{row * col,4}` and `{row * col:4}` both
+  right-align each number in four columns.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="A semicolon after if" wrong="control-flow/m-stray-semicolon" right="control-flow/m-stray-semicolon-fixed">
+  `if (x > 5);` ends the `if` with an empty statement, so the block below it
+  always runs. The compiler warns (CS0642) — read your warnings.
+</Mistake>
+
+<Mistake lang="cs" title="Looping one step too far" wrong="control-flow/m-off-by-one" right="control-flow/m-off-by-one-fixed">
+  Valid indexes are `0` to `Length - 1`. `i <= scores.Length` reads one element
+  past the end. `foreach` avoids the problem entirely.
+</Mistake>
+
+<Mistake lang="cs" title="Falling through to the next case" wrong="control-flow/m-fall-through" right="control-flow/m-fall-through-fixed">
+  In C and Java, execution falls into the next `case`. C# forbids that for
+  non-empty cases and asks for `break`.
+</Mistake>
+
+<Mistake lang="py" title="Expecting range to include its end" wrong="control-flow/m-range-end" right="control-flow/m-range-end-fixed">
+  `range(1, 10)` is `1 … 9`. The missing `10` changes the sum from 55 to 45 with
+  no error at all.
+</Mistake>
+
+<Mistake lang="py" title="A line outside the loop by indentation" wrong="control-flow/m-indentation" right="control-flow/m-indentation-fixed">
+  The `print` is not indented, so it runs once, after the loop, with the last
+  value. Python can't warn you: both versions are valid programs.
+</Mistake>
+
+<Mistake lang="py" title="A constant name in a match case" wrong="control-flow/m-match-capture" right="control-flow/m-match-capture-fixed">
+  A bare name in a `case` is a **capture**: it matches anything and assigns it.
+  Python rejects this program because the `case _` after it could never run.
+  Compare with a guard, a literal, or a dotted name such as `Limits.MAX_SCORE`.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="control-flow/p-loop-variable">
+  The C# loop variable is an ordinary variable: `i++` inside the body plus
+  `i++` in the header skip every other number. Python's `for` takes the next
+  value from `range` each time; `i += 1` changes only the current copy.
+</Predict>
+
+<Predict id="control-flow/p-while-final">
+  Both loops stop when the condition `i < 3` becomes false, which happens when
+  `i` is 3 — so `3` is printed, not `2`.
+</Predict>
+
+<Predict id="control-flow/p-wildcard-first">
+  Neither program compiles. A catch-all (`_`) must be the **last** arm, because
+  arms are tried in order and nothing after it could ever match. Both compilers
+  catch this.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'What does this Python program print?',
+    sample: 'control-flow/q-range',
+    lang: 'py',
+    options: ['`[2, 4, 6, 8]`', '`[2, 4, 6]`', '`[2, 3, 4, 5, 6, 7]`', '`[4, 6, 8]`'],
+    answer: 1,
+    explanation: '`range(2, 8, 2)` starts at 2, adds 2 each step, and stops before 8.',
+  },
+  {
+    question: 'Which is the C# equivalent of Python\'s `for i in range(5):`?',
+    options: [
+      '`for (int i = 0; i <= 5; i++)`',
+      '`for (int i = 1; i <= 5; i++)`',
+      '`for (int i = 0; i < 5; i++)`',
+      '`foreach (int i in 5)`',
+    ],
+    answer: 2,
+    explanation: '`range(5)` is `0, 1, 2, 3, 4`: it starts at 0 and excludes 5.',
+  },
+  {
+    question: 'When does the `else` block of a Python `for` loop run?',
+    options: [
+      'When the loop body never runs',
+      'When the loop finishes without `break`',
+      'After every iteration',
+      'When an exception occurs',
+    ],
+    answer: 1,
+    explanation: 'The `else` runs after the loop ends normally, and is skipped when `break` stopped it. (It also runs when the sequence is empty, because no `break` happened.)',
+  },
+  {
+    question: 'What happens in C# if a non-empty `case` has no `break`?',
+    options: [
+      'Execution falls through to the next case',
+      'The program crashes at runtime',
+      'It is a compile error',
+      'The rest of the switch is skipped',
+    ],
+    answer: 2,
+    explanation: 'C# reports CS0163 ("Control cannot fall through"). Python\'s `match` has no fall-through, so it never needs `break`.',
+  },
+  {
+    question: 'Which Python construct replaces C#\'s `do { … } while (cond);`?',
+    options: [
+      '`do: … while cond`',
+      '`while True:` with a `break` when done',
+      '`for … else`',
+      '`repeat … until cond`',
+    ],
+    answer: 1,
+    explanation: 'Python has no do-while loop. An endless `while True` loop whose body ends with `if done: break` guarantees at least one run.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['If / else if', '`if (c) { } else if (d) { } else { }`', '`if c:` / `elif d:` / `else:`'],
+    ['Switch on values', '`case 6: case 7: … break;`', '`case 6 | 7:`'],
+    ['Default case', '`default:`, `_ =>`', '`case _:`'],
+    ['Guard', '`int n when n > 40`', '`case int(n) if n > 40:`'],
+    ['Range pattern', '`>= 90 => "AA"`', 'use a guard: `case s if s >= 90:`'],
+    ['Count 0 … n−1', '`for (int i = 0; i < n; i++)`', '`for i in range(n):`'],
+    ['Count down', '`for (int i = 5; i > 0; i--)`', '`for i in range(5, 0, -1):`'],
+    ['Each item', '`foreach (var x in items)`', '`for x in items:`'],
+    ['Index and item', 'index `for` loop', '`for i, x in enumerate(items):`'],
+    ['At least once', '`do { } while (c);`', '`while True:` … `break`'],
+    ['Skip / stop', '`continue;` / `break;`', '`continue` / `break`'],
+    ['"If no break"', 'a `bool found` flag', '`for … else:`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Here is a C# `switch` expression. Show me two Python versions — one with
+  `match` and one with `if`/`elif` — and tell me which is more idiomatic and
+  why."
+- "Give me five loop snippets in C# and Python where the numbers of iterations
+  differ by one. Let me count before you tell me."
+
+<Note type="warning" title="Verify it yourself">
+  When AI translates loops between the languages, check the boundaries: `<=`
+  versus `range`'s excluded end, and loops that change their own counter. Run
+  both versions with 0, 1 and the maximum number of items.
+</Note>

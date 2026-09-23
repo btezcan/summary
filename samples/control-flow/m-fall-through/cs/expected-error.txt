@@ -1,0 +1,1 @@
+Program.cs(4,5): error CS0163: Control cannot fall through from one case label ('case 1:') to another

@@ -1,0 +1,4 @@
+  File "main.py", line 4
+    case MAX_SCORE:
+         ^^^^^^^^^
+SyntaxError: name capture 'MAX_SCORE' makes remaining patterns unreachable
