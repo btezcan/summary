@@ -1,5 +1,209 @@
 ---
-title: "async / await"
+title: async / await
+description: What asynchronous code is for, Task and coroutines, running work concurrently with Task.WhenAll and asyncio.gather, and the classic mistakes — in C# and Python side by side.
 ---
 
-This chapter is being written.
+import { Pair, Sample, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- `async` / `await` let a program **wait for I/O** — network, disk, timers —
+  without blocking. While one operation waits, others can make progress.
+- C#: an `async` method returns a `Task` or `Task<T>`. Python: an `async def`
+  function returns a **coroutine**; `asyncio.run(main())` starts the event loop.
+- Run independent operations **concurrently** with `Task.WhenAll` /
+  `asyncio.gather`: two 0.3-second waits take about 0.3 seconds, not 0.6.
+- A C# `Task` **starts immediately** when created. A Python coroutine does
+  **nothing until it is awaited** (or wrapped in a task).
+- Never block inside async code: no `.Result` / `.Wait()` in C#, no
+  `time.sleep()` in Python. Always `await`.
+
+## Concept
+
+### Why asynchronous code
+
+Most waiting in programs isn't computing — it's waiting for a server to answer or
+a disk to deliver data. **Synchronous** code sits idle during that time.
+**Asynchronous** code says "continue here when the result is ready" and lets the
+program do other work meanwhile. It's about **waiting efficiently**, not about
+computing faster.
+
+### The basic shape
+
+<Pair id="async/basics">
+  `await` pauses the method until the result is ready, then continues on the next
+  line; to the reader, the code still looks sequential. C# allows `await` directly
+  in top-level statements. Python needs an `async def main()` started with
+  `asyncio.run(...)`. `Task.Delay` and `asyncio.sleep` stand in for real I/O
+  here.
+</Pair>
+
+### Tasks start immediately; coroutines wait
+
+This is the biggest difference between the two models, and the source of real
+bugs when translating code. Calling an `async` method in C# **starts** it: it runs
+until its first `await`. Calling an `async def` function in Python only
+**creates** a coroutine object; nothing runs until it is awaited or wrapped with
+`asyncio.create_task(...)`. The first Predict exercise below shows the effect.
+
+<Compare
+  caption="The two async models"
+  headers={['', 'C#', 'Python (asyncio)']}
+  rows={[
+    ['Declares async code', '`async Task<int> F()`', '`async def f() -> int:`'],
+    ['Calling it returns', 'a running `Task<int>`', 'a coroutine that hasn\'t started'],
+    ['Start without awaiting', 'just call it', '`asyncio.create_task(f())`'],
+    ['Entry point', '`await` in `Main` / top-level code', '`asyncio.run(main())`'],
+    ['Wait for several', '`await Task.WhenAll(a, b)`', '`await asyncio.gather(a, b)`'],
+    ['Pause without blocking', '`await Task.Delay(ms)`', '`await asyncio.sleep(s)`'],
+    ['Where code runs', 'thread-pool threads may continue it', 'one thread, one event loop'],
+  ]}
+/>
+
+## Examples
+
+### Waiting for several things at once
+
+<Pair id="async/concurrent">
+  Awaiting one download after the other takes the sum of the waits. Starting both
+  and awaiting them together with `WhenAll` / `gather` takes about as long as the
+  slowest one. (The samples print comparisons instead of exact times, because
+  times vary from run to run.)
+</Pair>
+
+<Note type="tip" title="Python 3.11: TaskGroup">
+  `asyncio.TaskGroup` (`async with asyncio.TaskGroup() as tg: tg.create_task(…)`)
+  is a newer, safer alternative to `gather`: if one task fails, the others are
+  cancelled.
+</Note>
+
+### A real request
+
+Real async code usually talks to the network. In C#, `HttpClient` is async from
+the start. This sample is compiled but not run by this site's checks, because it
+needs the internet:
+
+<Sample id="async/http" lang="cs" />
+
+Python's standard library has no high-level async HTTP client; projects use a
+third-party package for that, which is outside this guide.
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Forgetting await" wrong="async/m-no-await" right="async/m-no-await-fixed">
+  The task was started but nobody waited for it, so the program ended before
+  `saved` could print. The compiler warned (CS4014). Worse, any exception inside
+  the task is lost.
+</Mistake>
+
+<Mistake lang="cs" title="async void" wrong="async/m-async-void" right="async/m-async-void-fixed">
+  An `async void` method can't be awaited, so the `try` / `catch` around the call
+  finishes before the exception happens — and the exception then crashes the
+  whole process. Use `async Task`. `async void` exists only for event handlers.
+</Mistake>
+
+<Mistake lang="py" title="Forgetting await" wrong="async/m-no-await" right="async/m-no-await-fixed">
+  `save()` only created a coroutine, which was never run: Python warns "coroutine
+  'save' was never awaited", and mypy reports the unused coroutine. Unlike C#,
+  none of `save` ran at all.
+</Mistake>
+
+<Mistake lang="py" title="Blocking sleep inside async code" wrong="async/m-blocking-sleep" right="async/m-blocking-sleep-fixed">
+  `time.sleep` blocks the only thread, so the event loop can't switch to the
+  other download — they run one after the other. The C# equivalent is calling
+  `.Result`, `.Wait()` or `Thread.Sleep` inside async code.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="async/p-hot-cold">
+  Calling `Work("A")` in C# **starts** the method immediately: it runs until its
+  first `await` before `created` is printed. Calling `work("A")` in Python only
+  **creates** a coroutine object; nothing runs until `await coro`. To start a
+  Python coroutine in the background, wrap it: `asyncio.create_task(work("A"))`.
+</Predict>
+
+<Predict id="async/p-gather-order">
+  `fast` finishes first, but `WhenAll` / `gather` return the results in the
+  **order the tasks were passed in**, not the order they finished. You can match
+  each result to its input by position.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'What is async / await mainly for?',
+    options: [
+      'Making calculations faster',
+      'Waiting for I/O without blocking the program',
+      'Running code on the GPU',
+      'Replacing loops',
+    ],
+    answer: 1,
+    explanation: 'Async code shines when a program waits for networks, disks or timers. CPU-heavy work needs other tools (threads, processes).',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'async/q-gather',
+    lang: 'py',
+    options: ['`[2, 4]`', '`(2, 4)`', '`[<coroutine>, <coroutine>]`', '`6`'],
+    answer: 0,
+    explanation: '`gather` awaits both coroutines and returns their results as a list, in the order they were passed.',
+  },
+  {
+    question: 'In Python, what happens when you call an `async def` function without `await`?',
+    options: [
+      'It runs in the background',
+      'It runs synchronously',
+      'It only creates a coroutine; nothing runs',
+      'It raises an exception immediately',
+    ],
+    answer: 2,
+    explanation: 'The coroutine does nothing until awaited or scheduled with `asyncio.create_task`. A C# `Task` starts running as soon as the method is called.',
+  },
+  {
+    question: 'Two independent downloads take 1 second each. How long does `await Task.WhenAll(a, b)` take, roughly?',
+    options: ['2 seconds', 'About 1 second', '0.5 seconds', 'It depends on the order'],
+    answer: 1,
+    explanation: 'Both waits overlap. Awaiting them one after the other would take about 2 seconds.',
+  },
+  {
+    question: 'Which C# method return type should you avoid except for event handlers?',
+    options: ['`async Task`', '`async Task<int>`', '`async void`', '`async ValueTask`'],
+    answer: 2,
+    explanation: 'An `async void` method can\'t be awaited, and its exceptions can\'t be caught by the caller.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Async function', '`static async Task<int> F()`', '`async def f() -> int:`'],
+    ['No result', '`async Task`', '`async def f() -> None:`'],
+    ['Wait for it', '`int x = await F();`', '`x = await f()`'],
+    ['Start the program', '`await` in top-level code', '`asyncio.run(main())`'],
+    ['Run concurrently', '`await Task.WhenAll(F(), G())`', '`await asyncio.gather(f(), g())`'],
+    ['Start in background', '`var t = F();`', '`t = asyncio.create_task(f())`'],
+    ['Pause', '`await Task.Delay(100)`', '`await asyncio.sleep(0.1)`'],
+    ['Don\'t use', '`.Result`, `.Wait()`, `async void`', '`time.sleep()` in async code'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Explain the difference between concurrency and parallelism with a restaurant
+  analogy, then show where async/await fits, in C# and Python."
+- "Here is my async code. Point out every place where it blocks or forgets to
+  await, but don't rewrite it."
+
+<Note type="warning" title="Verify it yourself">
+  When AI translates async C# to Python, it often forgets that Python coroutines
+  don't start by themselves, or leaves `time.sleep` / `.Result` in async code. Add
+  timing checks like the ones on this page: if concurrent code takes as long as
+  sequential code, something is blocking.
+</Note>
