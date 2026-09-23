@@ -1,5 +1,218 @@
 ---
-title: "Learning with AI"
+title: Learning with AI
+description: How to use AI assistants as a tutor and reviewer without letting them replace your thinking — good prompts, a verification checklist, a bug-hunting exercise in C# and Python, and academic integrity.
 ---
 
-This chapter is being written.
+import { Pair, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- AI assistants write **plausible** code quickly — and it is sometimes wrong in
+  subtle ways. Your value is **understanding, judging and verifying** code, not
+  typing it.
+- Use AI as a **tutor** ("explain", "ask me questions", "review without fixing"),
+  not as a replacement for doing the exercise.
+- **Verify everything:** does it compile and run, can you explain every line, what
+  happens with empty, `null` / `None`, negative and huge input, are there tests,
+  do the APIs really exist, is it idiomatic?
+- Translating between C# and Python is where AI makes the most **silent**
+  mistakes: integer division, `%`, `??` versus `or`, copying versus sharing.
+- Follow your course's rules on AI, and say when you used it.
+
+## Concept
+
+### An honest picture
+
+An AI assistant predicts code that *looks* right for your question. Most of the
+time it is. But it has no reliable sense of whether it actually is: it can invent
+methods that don't exist, mix up language versions, use Python 2 or .NET
+Framework patterns, and miss edge cases — all in confident, well-formatted code.
+Everything this site verified by running (chapters 1–17) is exactly the kind of
+detail it gets wrong.
+
+That changes what programming skill means. Producing code is cheap now.
+**Reading** code, **predicting** what it does, **finding** the case where it
+breaks and **explaining** why — that is the skill employers and exams look for,
+and it's the one you build by doing the work yourself.
+
+### When not to use AI
+
+- **While you are first learning a concept.** If the AI writes your first loop,
+  you don't learn loops. Struggle first; ask afterwards.
+- **In labs and exams where it is not allowed.**
+- **When you can't yet explain the code it would give you.** If you can't
+  explain it, you can't check it — and you can't defend it in an oral exam.
+
+### Prompts that make you learn
+
+Ask for **explanations, questions and reviews**, not finished solutions:
+
+- "Explain this error message, but don't write the fix: …"
+- "Explain this code line by line, then ask me three questions that check whether
+  I understood it."
+- "Review my code. List the problems, but don't give me corrected code."
+- "Give me five predict-the-output exercises on [topic], one at a time. Wait for
+  my answer before showing the solution."
+- "Translate this C# to **idiomatic** Python and list every place where the
+  behavior could differ." — then **check each claim by running both versions**.
+
+### A verification checklist
+
+Before you trust AI-generated code — or hand it in:
+
+1. **Does it compile and run?** Build it, run it, read every warning. For Python,
+   run mypy too.
+2. **Can I explain every line?** If not, ask about that line, or rewrite it.
+3. **What about the edge cases?** Empty input, `null` / `None`, zero, negative
+   numbers, very large values, Turkish letters, a Turkish-locale computer.
+4. **Are there tests?** Write a few, including boundaries. Make sure a test fails
+   when you break the code on purpose.
+5. **Do the APIs exist?** Look up unfamiliar methods in the official
+   documentation, or try them in a two-line program.
+6. **Is it modern and idiomatic?** No `ArrayList` or `csc.exe`, no Python 2, no
+   "C# written in Python".
+
+### Academic integrity
+
+Your course's rules decide what is allowed. When AI helped you, say so in the way
+your instructor asks — in a comment, a report section or a conversation. Never
+hand in code you can't explain: understanding it is the assignment.
+
+## Examples
+
+### The bug-hunt solutions
+
+Try the two Predict exercises below **first**. These are the fixed versions, with
+each fix labeled:
+
+<Pair id="learning-with-ai/bug-hunt-fixed">
+  C#: loop over **all** scores (`foreach`), divide as `double`, and handle
+  `null` (plus the empty case). Python: create a new list per call, sum **all**
+  values, and treat only `None` as "not given". Every bug was in code that
+  looked reasonable at a glance.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="py" title="C# written in Python" wrong="learning-with-ai/m-literal-translation" right="learning-with-ai/m-literal-translation-fixed">
+  Both print the same thing, but the first version is a line-by-line translation
+  of a C# `for` loop: a manual counter, `str(i) + …`, `i = i + 1`. Idiomatic
+  Python uses `enumerate` and an f-string. AI translations often look like the
+  first version — ask for idiomatic code, and learn to recognize the difference.
+</Mistake>
+
+<Note type="warning" title="The silent translation bugs">
+  When code moves between C# and Python, check these first — each one is shown
+  with real output in an earlier chapter: `/` on integers (chapter 3), `%` and
+  `//` on negative numbers (3), `??` versus `or` (3, 11), integer overflow (2),
+  culture-dependent `ToUpper` and `Parse` (4), `range` end (5), mutable default
+  arguments (6), struct copies versus shared objects (9), dictionary order (7),
+  and tasks that start immediately versus coroutines that don't (16).
+</Note>
+
+## Predict the Output
+
+<Predict id="learning-with-ai/bug-hunt" lang="cs" question="This C# method has three bugs. What does the program print, and where are the bugs?">
+  **Bug 1:** the loop starts at `i = 1`, so the first score (70) is ignored.
+  **Bug 2:** `sum / count` divides two `int`s, so `175 / 2` is `87`, not `87.5`.
+  **Bug 3:** there's no `null` check; the compiler even warned about it (CS8602).
+  The correct average of the passing scores 70, 90 and 85 is 81.67.
+</Predict>
+
+<Predict id="learning-with-ai/bug-hunt" lang="py" question="These Python helpers have three bugs. What does the program print, and where are the bugs?">
+  **Bug 1:** the default list `[]` is created once and shared, so the second call
+  still contains `70`. **Bug 2:** `range(1, …)` skips the first score, so the
+  average of 70, 80 and 90 comes out as 56.67. **Bug 3:** `extra or 5` treats `0`
+  as "not given", so "no bonus" becomes 5 points. Nothing crashed — every bug
+  produced a plausible wrong answer.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'Which prompt helps you learn the most while doing an exercise?',
+    options: [
+      '"Write the solution for this exercise."',
+      '"Review my solution and list the problems, but don\'t fix them."',
+      '"Make my code shorter."',
+      '"Write the code and the comments."',
+    ],
+    answer: 1,
+    explanation: 'You keep doing the thinking; the AI acts as a reviewer. Fixing the problems yourself is where the learning happens.',
+  },
+  {
+    question: 'An AI suggests a method you have never seen. What should you do first?',
+    options: [
+      'Use it; AI tools know the libraries',
+      'Check that it exists — in the documentation or with a tiny program',
+      'Ask the AI whether it is sure',
+      'Rename it',
+    ],
+    answer: 1,
+    explanation: 'AI tools sometimes invent plausible-sounding methods. Asking the AI again isn\'t verification; the compiler or the docs are.',
+  },
+  {
+    question: 'AI translated `total / count` from C# (both `int`) to Python as `total / count`. What changed?',
+    options: [
+      'Nothing',
+      'Python\'s `/` gives a float, so the result is no longer truncated',
+      'Python raises an error',
+      'Python rounds instead of truncating',
+    ],
+    answer: 1,
+    explanation: 'C#\'s `/` on two ints truncates; Python\'s `/` always divides exactly. The faithful translation is `//` — if truncation was intended.',
+  },
+  {
+    question: 'Which input is most likely to reveal a bug in AI-generated code?',
+    options: [
+      'A typical middle value',
+      'An empty list, `null` / `None`, zero or a boundary value',
+      'The example from the prompt',
+      'A very long variable name',
+    ],
+    answer: 1,
+    explanation: 'Generated code is usually right for the typical case in the prompt. Edge cases are where it breaks.',
+  },
+  {
+    question: 'You used an AI assistant to understand an error in your homework. What should you do?',
+    options: [
+      'Hide it',
+      'Follow your course\'s rules and mention the help as your instructor asks',
+      'Delete the code and start over',
+      'Nothing; it doesn\'t matter',
+    ],
+    answer: 1,
+    explanation: 'Rules differ between courses. Being open about AI help — and being able to explain your code — is what academic integrity requires.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['You want to…', 'Ask the AI to…', 'Then you…']}
+  rows={[
+    ['Understand an error', 'explain the message, not fix it', 'fix it yourself'],
+    ['Understand code', 'explain line by line and quiz you', 'answer before reading on'],
+    ['Improve your code', 'list problems without fixing them', 'fix and re-test'],
+    ['Practice', 'give predict-the-output exercises', 'predict, then run the code'],
+    ['Translate C# ↔ Python', 'write idiomatic code and list behavior differences', 'run both versions and compare'],
+    ['Write tests', 'list boundary cases', 'write the tests yourself'],
+    ['Check AI code', '— (don\'t ask the AI to check itself)', 'compile, run, mypy, tests, docs'],
+  ]}
+/>
+
+## Working with AI
+
+Practice what this chapter describes on something you've already written:
+
+- Take a solution of yours from an earlier chapter and ask: "Review this code for
+  bugs, edge cases and style. List the problems, but don't rewrite it." Fix what
+  you agree with — and write down one point where you think the AI was wrong,
+  and why.
+
+<Note type="warning" title="Verify it yourself">
+  Everything on this site was checked by compiling and running it. Hold AI
+  answers to the same standard: if you can't run it or find it in the official
+  documentation, treat it as a guess.
+</Note>
