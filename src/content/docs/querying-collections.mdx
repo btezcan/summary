@@ -1,5 +1,266 @@
 ---
-title: "Querying Collections"
+title: Querying Collections
+description: LINQ in C# and comprehensions, generators and built-ins in Python — filtering, sorting, grouping, aggregating, and lazy evaluation.
 ---
 
-This chapter is being written.
+import { Pair, Sample, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- **LINQ** (C#) chains methods: `Where`, `OrderBy`, `Select`, `GroupBy`, `Sum`…
+  Python uses **comprehensions** (`[x for x in items if …]`), `sorted(key=…)`
+  and built-ins such as `sum`, `max`, `any`, `all`.
+- Both are **lazy** until you ask for results: a LINQ query runs **every time**
+  you enumerate it; a Python **generator** runs **once** and is then used up.
+- `ToList()` / `list(...)` runs the query now and keeps the results.
+- `First()` and `next()` fail on an empty result; use `FirstOrDefault()` and
+  `next(…, None)` when "nothing found" is normal.
+- A query is just a loop written declaratively. When the loop is clearer, write
+  the loop.
+
+## Concept
+
+### The data
+
+All examples on this page query the same five students. Each example shows only
+its query; the data is defined once:
+
+<Pair id="querying-collections/filter-sort" csRegion="data" pyRegion="data" output={false} />
+<Sample id="querying-collections/filter-sort" lang="cs" region="type" output={false} />
+
+### Filter, sort, project
+
+<Pair id="querying-collections/filter-sort" csRegion="query" pyRegion="query">
+  LINQ reads as a pipeline: keep the passing students, sort them, take their
+  names. The Python comprehension does the same in one expression; the sorting
+  happens first, in a separate step, because a comprehension has no "order by"
+  clause.
+</Pair>
+
+Neither version is magic. The same query as an ordinary loop:
+
+<Pair id="querying-collections/as-loop" csRegion="query" pyRegion="query">
+  (Without the sort.) `Where` is the `if`, `Select` is what you add to the result.
+  Knowing this translation helps you read queries — and decide when a plain loop
+  is clearer.
+</Pair>
+
+<Compare
+  caption="LINQ methods and their Python counterparts"
+  headers={['Task', 'C# (LINQ)', 'Python']}
+  rows={[
+    ['Keep matching items', '`Where(x => …)`', '`[x for x in xs if …]`, `filter`'],
+    ['Transform each item', '`Select(x => …)`', '`[f(x) for x in xs]`, `map`'],
+    ['Sort', '`OrderBy`, `OrderByDescending`, `ThenBy`', '`sorted(xs, key=…, reverse=…)`'],
+    ['Count, sum, average', '`Count()`, `Sum()`, `Average()`', '`len`, `sum`, `statistics.mean`'],
+    ['Smallest / largest', '`Min()`, `Max()`', '`min`, `max`'],
+    ['Any / all match?', '`Any(…)`, `All(…)`', '`any(…)`, `all(…)`'],
+    ['First match', '`First(…)`, `FirstOrDefault(…)`', '`next(…)`, `next(…, None)`'],
+    ['Exactly one', '`Single(…)`', '`(x,) = [...]`'],
+    ['Remove duplicates', '`Distinct()`', '`set(…)`, `dict.fromkeys(…)` (keeps order)'],
+    ['First n / skip n', '`Take(n)`, `Skip(n)`', '`xs[:n]`, `xs[n:]`, `itertools.islice`'],
+    ['Group', '`GroupBy(x => key)`', '`defaultdict(list)`, `itertools.groupby` (sorted input!)'],
+    ['To a list / dict / set', '`ToList()`, `ToDictionary()`, `ToHashSet()`', '`list(…)`, `{k: v for …}`, `{x for …}`'],
+  ]}
+/>
+
+### Aggregates
+
+<Pair id="querying-collections/aggregates" csRegion="query" pyRegion="query">
+  LINQ passes a selector (`s => s.Score`) to each aggregate. Python usually builds
+  the list of numbers once, then calls built-ins on it. `any` / `all` take a
+  generator expression, so they stop as soon as the answer is known — like
+  `Any` / `All`.
+</Pair>
+
+### Lazy evaluation
+
+A LINQ query and a Python generator expression don't do any work when they're
+created. They run when something **enumerates** them: a `foreach` / `for`,
+`Count()`, `sum()`, `ToList()`, `list()`. The two differ in what happens the
+**second** time.
+
+<Pair id="querying-collections/deferred">
+  Both see the `4` that was added after the query was written, because neither
+  had run yet. A LINQ query can be enumerated again and **reruns** from the start.
+  A generator is a one-shot iterator: the second count gets nothing.
+</Pair>
+
+<Note type="tip" title="When to call ToList() / list()">
+  Materialize a query when you'll use the results more than once, when the query
+  is expensive, or when the source may change and you want a snapshot. Leave it
+  lazy for one pass over a big or endless sequence.
+</Note>
+
+### Query syntax and comprehensions
+
+C# also has a SQL-like **query syntax**; the compiler turns it into the same
+method calls. Python's comprehensions come in four kinds.
+
+<Sample id="querying-collections/query-syntax" lang="cs" />
+<Sample id="querying-collections/comprehensions" lang="py" />
+
+## Examples
+
+### Grouping
+
+<Pair id="querying-collections/group-by" csRegion="query" pyRegion="query">
+  `GroupBy` returns groups with a `Key`; the anonymous type `new { … }` shapes
+  each result. In Python, a `defaultdict(list)` collects the groups in one loop.
+  Both keep the groups in first-seen order here.
+</Pair>
+
+### Sorting by several keys
+
+<Pair id="querying-collections/then-by" csRegion="query" pyRegion="query">
+  `ThenByDescending` breaks ties. Python sorts by a **tuple** key; negating the
+  score sorts it descending (for strings, sort twice, relying on stability).
+</Pair>
+
+### First, default and single
+
+<Pair id="querying-collections/first-single" csRegion="query" pyRegion="query">
+  `Single` insists on exactly one match and throws otherwise. Python's unpacking
+  `(me,) = [...]` does the same: it raises `ValueError` for zero or two matches.
+</Pair>
+
+### Distinct, take and skip
+
+<Pair id="querying-collections/distinct-take-skip" csRegion="query" pyRegion="query">
+  `dict.fromkeys` removes duplicates **and** keeps the original order, which a
+  `set` doesn't promise. Slices replace `Take` and `Skip` for lists.
+</Pair>
+
+### Building a lookup
+
+<Pair id="querying-collections/to-dictionary" csRegion="query" pyRegion="query">
+  A dictionary or set comprehension builds a lookup table in one line, like
+  `ToDictionary` and `ToHashSet`.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="First() when nothing matches" wrong="querying-collections/m-first-empty" right="querying-collections/m-first-empty-fixed" wrongRegion="query" rightRegion="query">
+  `First` throws `InvalidOperationException` on an empty result. Python's
+  `next()` without a default raises `StopIteration`. Use the default versions
+  when "nothing found" is a normal case.
+</Mistake>
+
+<Mistake lang="cs" title="Enumerating a query twice" wrong="querying-collections/m-enumerate-twice" right="querying-collections/m-enumerate-twice-fixed" wrongRegion="query" rightRegion="query">
+  Each enumeration reruns the whole query: `Sum` and `Max` did the work twice
+  (10 calls for 5 students). With a database or a slow computation behind the
+  query, that doubles the cost. `ToList()` runs it once.
+</Mistake>
+
+<Mistake lang="py" title="itertools.groupby on unsorted data" wrong="querying-collections/m-groupby-unsorted" right="querying-collections/m-groupby-unsorted-fixed" wrongRegion="query" rightRegion="query">
+  `groupby` only groups **neighboring** items with the same key, so `CS` and
+  `EE` appear twice. Sort by the same key first — or use a `defaultdict`, which
+  doesn't care about order. C#'s `GroupBy` has no such requirement.
+</Mistake>
+
+<Mistake lang="py" title="Reusing a generator" wrong="querying-collections/m-generator-twice" right="querying-collections/m-generator-twice-fixed" wrongRegion="query" rightRegion="query">
+  `sum` used up the generator, so `max` saw an empty sequence and returned the
+  default. Without `default=`, it would raise `ValueError`. Build a list when you
+  need the values twice.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="querying-collections/p-all-empty" region="query">
+  "All of nothing" is **true** in both languages — there is no counterexample —
+  while "any of nothing" is false. This logic rule (vacuous truth) surprises
+  people in code reviews; check for empty input explicitly when it matters.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'What does this Python program print?',
+    sample: 'querying-collections/q-slice',
+    lang: 'py',
+    options: ['`[3, 1, 4]`', '`[1, 2, 3]`', '`[1, 1, 2]`', '`{1, 2, 3}`'],
+    answer: 1,
+    explanation: '`set` removes duplicates, `sorted` returns a sorted list, and `[:3]` takes the first three. In C#: `nums.Distinct().OrderBy(n => n).Take(3)`.',
+  },
+  {
+    question: 'Which Python expression corresponds to `students.Where(s => s.Score >= 60).Select(s => s.Name)`?',
+    options: [
+      '`[s for s in students if s.name >= 60]`',
+      '`[s.name for s in students if s.score >= 60]`',
+      '`students.where(lambda s: s.score >= 60)`',
+      '`filter(students, s.score >= 60)`',
+    ],
+    answer: 1,
+    explanation: 'The expression before `for` is the `Select`; the `if` is the `Where`.',
+  },
+  {
+    question: 'You enumerate the same LINQ query twice. What happens?',
+    options: [
+      'The second enumeration is empty',
+      'The query runs again from the start',
+      'The results are cached automatically',
+      'It throws an exception',
+    ],
+    answer: 1,
+    explanation: 'LINQ queries are deferred and rerun on each enumeration. A Python generator, in contrast, is empty the second time.',
+  },
+  {
+    question: 'Why can `itertools.groupby` give surprising results?',
+    options: [
+      'It only works on numbers',
+      'It groups only neighboring items, so the input must be sorted by the key',
+      'It removes duplicates',
+      'It returns groups in random order',
+    ],
+    answer: 1,
+    explanation: 'Unsorted input produces several groups for the same key. Sort first, or collect groups in a `defaultdict(list)`.',
+  },
+  {
+    question: 'What is the Python counterpart of `FirstOrDefault(s => s.Score > 100)`?',
+    options: [
+      '`next(s for s in students if s.score > 100)`',
+      '`next((s for s in students if s.score > 100), None)`',
+      '`students.first(lambda s: s.score > 100)`',
+      '`[s for s in students if s.score > 100][0]`',
+    ],
+    answer: 1,
+    explanation: 'Without the default, `next` raises `StopIteration` when nothing matches — like `First`. The last option raises `IndexError`.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Filter + map', '`xs.Where(x => x > 0).Select(x => x * 2)`', '`[x * 2 for x in xs if x > 0]`'],
+    ['Sort (new sequence)', '`xs.OrderBy(x => x.Name)`', '`sorted(xs, key=lambda x: x.name)`'],
+    ['Sort descending', '`OrderByDescending(x => x.Score)`', '`sorted(…, reverse=True)`'],
+    ['Two keys', '`.OrderBy(a).ThenBy(b)`', '`key=lambda x: (x.a, x.b)`'],
+    ['Aggregate', '`xs.Sum(x => x.Score)`', '`sum(x.score for x in xs)`'],
+    ['Average', '`xs.Average(x => x.Score)`', '`statistics.mean(…)`'],
+    ['Any / all', '`xs.Any(…)`, `xs.All(…)`', '`any(…)`, `all(…)`'],
+    ['First or nothing', '`xs.FirstOrDefault(…)`', '`next((…), None)`'],
+    ['Group', '`xs.GroupBy(x => x.Dept)`', '`defaultdict(list)`'],
+    ['Unique, in order', '`xs.Distinct()`', '`list(dict.fromkeys(xs))`'],
+    ['Lazy sequence', 'any LINQ query (reruns)', 'generator `( … for … )` (one-shot)'],
+    ['Run now, keep results', '`.ToList()`', '`list(…)`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Here is a LINQ query. Rewrite it as a plain `foreach` loop and as a Python
+  comprehension, and explain which one you'd find easiest to read."
+- "Give me a dataset and five questions to answer with LINQ and with Python
+  comprehensions. Let me write the queries first, then review them."
+
+<Note type="warning" title="Verify it yourself">
+  AI-generated queries are often long chains that are hard to check. Split a
+  complicated query into named steps, print the intermediate results, and test
+  with an empty collection — that's where `First`, `Single`, `Average` and
+  `max()` fail.
+</Note>

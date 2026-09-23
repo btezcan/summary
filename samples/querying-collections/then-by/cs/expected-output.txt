@@ -1,0 +1,5 @@
+CS 85 Ayşe
+CS 58 Can
+EE 92 Mehmet
+EE 66 Emre
+ME 74 Zeynep
