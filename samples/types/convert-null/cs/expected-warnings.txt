@@ -1,0 +1,1 @@
+Program.cs(3,29): warning CS8604: Possible null reference argument for parameter 's' in 'int int.Parse(string s)'.

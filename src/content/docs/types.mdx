@@ -1,5 +1,355 @@
 ---
-title: "Types and Variables"
+title: Types and Variables
+description: Static vs dynamic typing, numeric types, value vs reference semantics, conversions and overflow — in C# and Python side by side.
 ---
 
-This chapter is being written.
+import { Pair, Sample, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+import MemoryDiagram from '~/components/diagrams/MemoryDiagram.astro';
+
+## Summary
+
+- **C# is statically typed**: a variable has one type, fixed at compile time
+  (`var` only lets the compiler infer it). **Python is dynamically typed**: the
+  *object* has a type, and a name can later refer to an object of another type.
+- **C# integers have a fixed size and silently wrap around** on overflow.
+  **Python's `int` never overflows.**
+- `double` (C#) and `float` (Python) are the same 8-byte binary floating point, so
+  `0.1 + 0.2 != 0.3` in both. For money, use `decimal` / `Decimal`.
+- **Assignment:** C# copies *values* for value types and shares *objects* for
+  reference types. In Python every name refers to an object; what matters is
+  whether the object is **mutable** (`list`) or **immutable** (`int`, `str`).
+- Parse user input safely: `int.TryParse` (C#) and `int()` inside
+  `try / except ValueError` (Python).
+
+## Concept
+
+### A variable in each language
+
+In C#, a variable is a named storage location with a **type chosen at compile
+time**. `int count = 3;` reserves room for an `int`, and the compiler rejects any
+line that tries to store something else there. `var price = 9.99;` is still
+static typing: the compiler infers `double` from the right-hand side and fixes it.
+
+In Python, `count = 3` **binds a name to an object**. The object `3` has the type
+`int`; the name `count` has no type of its own. `count = "three"` is legal: it
+simply binds the name to a different object. Python is still **strongly typed**,
+though: it won't silently convert `"1"` to a number, so `"1" + 2` is a
+`TypeError`.
+
+<Pair id="types/declare">
+  C# prints .NET type names (`System.Int32` is what `int` stands for). Python's
+  last line shows the same name now referring to a `str`. The commented-out C# line
+  is a compile error — see [Common Mistakes](#common-mistakes).
+</Pair>
+
+Python also has **type hints** (`age: int = 20`). They document intent and a
+type checker such as mypy or pyright can read them, but **Python ignores them at
+runtime**. You'll see this below with `Final` and `int | None`.
+
+### Numeric types
+
+C# has several integer types, each with a fixed size. Python has one `int` that
+grows as needed. Both have one common floating-point type: C#'s `double` and
+Python's `float` are the same IEEE 754 "double precision" number. The sizes and
+ranges below are printed by .NET and Python themselves, not typed by hand.
+
+<Pair id="types/numeric-limits">
+  C# `float` is a 4-byte type; Python's `float` is the 8-byte one (C#'s `double`).
+  `sys.maxsize` limits things like list lengths — it is **not** the largest
+  Python integer. There is no largest Python integer.
+</Pair>
+
+<Compare
+  caption="Which type to use"
+  headers={['Purpose', 'C#', 'Python']}
+  rows={[
+    ['Counting, indexes', '`int` (`long` for very large values)', '`int`'],
+    ['Measurements, science', '`double`', '`float`'],
+    ['Money, exact decimals', '`decimal`', '`decimal.Decimal`'],
+    ['Yes / no', '`bool`', '`bool` (a subclass of `int`)'],
+    ['Text', '`string` (and `char` for one UTF-16 unit)', '`str` (no separate character type)'],
+    ['"No value yet"', '`int?`, `string?`', '`None`, hinted as `int | None`'],
+  ]}
+/>
+
+### Values, references and objects
+
+This is where the two languages look the same and work differently.
+
+**C#** sorts types into two groups. **Value types** (`int`, `double`, `bool`,
+`char`, `decimal`, structs, enums) hold their data directly; assignment copies
+the data. **Reference types** (`string`, arrays, classes, records) hold a
+*reference* to an object; assignment copies the reference, so both variables see
+the same object.
+
+**Python** has only one kind of variable: a name that refers to an object.
+Assignment never copies an object. The difference you can observe comes from
+**mutability**: an `int` or `str` can never change, so sharing it is harmless;
+a `list` can change, so a change through one name is visible through the other.
+
+<Pair id="types/value-reference">
+  Same output, different reasons. In C#, `b = a` copied the value 5. In Python,
+  `b = a` made both names refer to one `int` object, and `b = 10` rebound `b` to
+  another object — `a` never changed because nobody can change an `int` object.
+  With the array/list, both languages share one object.
+</Pair>
+
+<MemoryDiagram>
+  State after the example above. The C# side also shows a `Student` object `s`
+  (not in the sample): its `int` field `Age` is a value type, yet it lives **on
+  the heap, inside the object**. "Value types live on the stack" is only true for
+  local variables like `a` and `b`.
+</MemoryDiagram>
+
+<Note type="tip">
+  In C#, `string` is a reference type that behaves like a value because strings
+  are **immutable**: every "change" creates a new string. Python's `str` works
+  the same way. See the second Predict exercise below.
+</Note>
+
+### Conversions and parsing
+
+C# converts **implicitly** when nothing can be lost (`int` → `long`, `int` →
+`double`) and requires an **explicit cast** when data may be lost
+(`(int)9.99`). Python has no casts: you call the target type like a function —
+`int(9.99)`, `float("3.5")`, `str(42)`.
+
+Text from the keyboard or a file is always a string. Turning it into a number can
+fail, so each language has a safe pattern: C# returns `false` from `TryParse`,
+Python raises `ValueError` and you catch it.
+
+### Overflow
+
+A C# `int` is 4 bytes. One step past `int.MaxValue` it **wraps around** to the most
+negative value, silently. Inside `checked(...)` the same step throws
+`OverflowException`. A Python `int` has no fixed size, so there is nothing to
+overflow — it just uses more memory.
+
+### Only in C#: boxing
+
+Storing a value type in a variable of type `object` **boxes** it: .NET copies
+the value into a new heap object. Getting it back with a cast **unboxes** it.
+Boxing costs an allocation, which is why generic collections like `List<int>`
+(chapter 7) exist — they store `int`s without boxing.
+
+<Sample id="types/boxing" lang="cs" />
+
+Python has no boxing: every value, even `42`, is already an object on the heap.
+
+## Examples
+
+### Binary floating point, and exact decimals
+
+<Pair id="types/floating-point">
+  Both languages print the same surprising `0.30000000000000004`: `0.1` has no
+  exact binary representation. `decimal` / `Decimal` store base-10 digits, so
+  `0.1` is exact. Use them for money.
+</Pair>
+
+### Overflow
+
+<Pair id="types/overflow">
+  C#'s `max++` produced a **negative** number without any error. Python's
+  integer simply got bigger. Use `checked` (or `long`) in C# when a result could
+  exceed the range.
+</Pair>
+
+### Reading a number from the user
+
+<Pair id="types/parse-input">
+  Both programs received `19` from the keyboard. `TryParse` reports failure with
+  `false`; Python's `int()` raises `ValueError`. Try typing `twenty`: both print
+  "Please enter a number." instead of crashing.
+</Pair>
+
+### Truncating and rounding
+
+<Pair id="types/truncate-round">
+  Converting to an integer **truncates toward zero** in both languages (`-9.99`
+  becomes `-9`). Both default to **banker's rounding**: a value exactly halfway
+  goes to the nearest even number, so `2.5` rounds to `2`. School rounding needs
+  an explicit mode in both.
+</Pair>
+
+### Text length and characters
+
+<Pair id="types/text-length">
+  C# `string.Length` counts UTF-16 units, so a character outside the Basic
+  Multilingual Plane (here the musical symbol 𝄞, or any emoji) counts as **2**.
+  Python's `len` counts code points, giving 1. Python has no `char` type: `"A"`
+  is a string of length 1.
+</Pair>
+
+### "No value yet"
+
+<Pair id="types/nullable">
+  `int?` is a *nullable value type*: an `int` that can also be `null`. Python has
+  no special type for this; any name can refer to `None`. The hint `int | None`
+  only documents it. Chapter 11 covers `null` and `None` in depth.
+</Pair>
+
+### Constants
+
+<Pair id="types/constants">
+  `const` is enforced by the C# compiler. Python has no real constants: `Final`
+  and the `UPPER_CASE` name are signals to readers and type checkers, and the
+  program happily reassigns `PI`. (C# also has `readonly` fields, set once at
+  runtime — you'll meet them with classes in chapter 8.)
+</Pair>
+
+### Converting `null` / `None`
+
+<Pair id="types/convert-null">
+  `Convert.ToInt32(null)` quietly returns `0`, while `int.Parse(null)` throws —
+  and the C# compiler warned about that line before the program ran. Python's
+  `int(None)` raises `TypeError`. A silent `0` can hide a bug; prefer the version
+  that fails loudly.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Using a variable before it has a value" wrong="types/m-unassigned" right="types/m-unassigned-fixed">
+  C# requires **definite assignment**: every local variable must get a value
+  before it is read. Python has the runtime version of this mistake:
+  `NameError: name 'total' is not defined`.
+</Mistake>
+
+<Mistake lang="cs" title="Changing a variable's type" wrong="types/m-retype" right="types/m-retype-fixed">
+  `var count = 3` made `count` an `int` forever. This line is legal in Python,
+  which is exactly why the same idea needs a new variable in C#.
+</Mistake>
+
+<Mistake lang="cs" title="Parsing a decimal comma as an int" wrong="types/m-parse-comma" right="types/m-parse-comma-fixed">
+  `"12,5"` is not an integer in any culture. It is a decimal number written the
+  Turkish way, so parse it as `decimal` with the `tr-TR` culture — and print it
+  with an explicit culture too. Chapter 4 covers culture in detail.
+</Mistake>
+
+<Mistake lang="py" title="int() on text with a decimal point" wrong="types/m-int-decimal-text" right="types/m-int-decimal-text-fixed">
+  `int("12.5")` fails even though `int(12.5)` works: `int()` only parses text
+  that is a whole number. Parse with `float()` (or `Decimal()`) first.
+</Mistake>
+
+<Mistake lang="py" title="Forgetting that input() returns a string" wrong="types/m-input-plus" right="types/m-input-plus-fixed">
+  `input()` always returns a `str`, and Python won't add a number to a string.
+  Note how the traceback points at the failing expression. In C# the same idea
+  doesn't fail at all: `Console.ReadLine() + 1` is string concatenation and prints
+  `191` — a quieter bug.
+</Mistake>
+
+<Mistake lang="py" title="Building a Decimal from a float" wrong="types/m-decimal-float" right="types/m-decimal-float-fixed">
+  `Decimal(0.1)` faithfully stores the float's binary error. Build a `Decimal`
+  from a **string** to get exactly `0.1`.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="types/p-division">
+  The languages disagree. In C#, `5 / 2` divides two `int`s, so the result is the
+  `int` 2 and `var` infers `int` (`Int32`). In Python, `/` always produces a
+  `float`; use `//` for integer division. Chapter 3 goes deeper.
+</Predict>
+
+<Predict id="types/p-immutable-string">
+  Both print `a` then `ab`. `s2 += "b"` creates a **new** string and points `s2`
+  at it; the original `"a"` is untouched because strings are immutable in both
+  languages.
+</Predict>
+
+<Predict id="types/p-byte" lang="cs">
+  A `byte` holds 0 … 255, so 255 + 1 wraps around to 0 — no error. Python has no
+  equivalent: its `int` would just become 256.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'Which statement about C# `var` is true?',
+    options: [
+      'The variable can later hold a value of any type',
+      'The compiler infers one fixed type at compile time',
+      'It makes the variable dynamically typed, like Python',
+      'It can only be used with numbers',
+    ],
+    answer: 1,
+    explanation: '`var` is only a shorthand: the compiler infers the type from the right-hand side and then enforces it like any other declaration.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'types/q-true-plus',
+    lang: 'py',
+    options: ['`2` and `True`', '`True` and `True`', '`TrueTrue` and `False`', 'A `TypeError`'],
+    answer: 0,
+    explanation: 'In Python `bool` is a subclass of `int`: `True` is 1 and `False` is 0. C# does not allow arithmetic on `bool`.',
+  },
+  {
+    question: 'Which types store the value `0.1` exactly?',
+    options: [
+      'C# `double` and Python `float`',
+      'C# `float` and Python `float`',
+      'C# `decimal` and Python `Decimal("0.1")`',
+      'None of them: no computer type can store 0.1 exactly',
+    ],
+    answer: 2,
+    explanation: '`double` / `float` are binary and cannot represent 0.1. `decimal` / `Decimal` store base-10 digits. Note `Decimal("0.1")` from a string — `Decimal(0.1)` copies the float\'s error.',
+  },
+  {
+    question: 'C#: `int x = int.MaxValue; x++;` — Python: `x = 2_147_483_647; x += 1`. What happens?',
+    options: [
+      'Both raise an error',
+      'C# wraps to a negative number; Python gives `2147483648`',
+      'Both give `2147483648`',
+      'C# throws `OverflowException`; Python wraps to a negative number',
+    ],
+    answer: 1,
+    explanation: 'C# arithmetic is unchecked by default and wraps silently (use `checked` to get an `OverflowException`). Python integers have no fixed size.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'types/q-alias',
+    lang: 'py',
+    options: ['`[1, 2]`', '`[1, 2, 3]`', 'An error: lists cannot be shared'],
+    answer: 1,
+    explanation: '`b = a` does not copy the list; both names refer to one list object. Use `b = a.copy()` (or `list(a)`) for an independent copy. A C# array or `List<int>` behaves the same way.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Declare', '`int n = 5;`', '`n = 5`'],
+    ['Inferred type', '`var n = 5;` (still an `int`)', '`n = 5` (the object is an `int`)'],
+    ['Type hint', '— (the type is required)', '`n: int = 5` (not enforced)'],
+    ['Whole number', '`int`, `long`, `byte`, …', '`int` (unbounded)'],
+    ['Floating point', '`double` (8 bytes), `float` (4 bytes)', '`float` (8 bytes)'],
+    ['Exact decimal', '`decimal`: `0.1m`', '`Decimal("0.1")`'],
+    ['Text, one character', '`string`, `char`', '`str` (no character type)'],
+    ['Booleans', '`bool`: `true`, `false`', '`bool`: `True`, `False`'],
+    ['Maybe no value', '`int? n = null;`', '`n: int | None = None`'],
+    ['Constant', '`const double Pi = 3.14;`', '`PI: Final = 3.14` (convention)'],
+    ['Text → number', '`int.Parse(s)`', '`int(s)`'],
+    ['Safe parse', '`int.TryParse(s, out int n)`', '`try: int(s)` … `except ValueError:`'],
+    ['Number → whole', '`(int)9.99` → `9`', '`int(9.99)` → `9`'],
+    ['Type at runtime', '`x.GetType()`', '`type(x)`'],
+    ['Overflow check', '`checked(a + b)`', 'not needed'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Here is a C# snippet and my Python translation. List every place where they
+  could behave differently — overflow, division, rounding, `null` / `None`,
+  copying — but don't rewrite the code."
+- "Give me five predict-the-output questions about C# value types versus Python
+  mutable and immutable objects. Wait for my answer before revealing each one."
+
+<Note type="warning" title="Verify it yourself">
+  AI tools sometimes state numeric facts wrongly, for example "Python integers
+  overflow at 2⁶³" or "`decimal` is 12 bytes". Both are false. Check any such
+  claim with a two-line program, the way this page's range table was produced.
+</Note>

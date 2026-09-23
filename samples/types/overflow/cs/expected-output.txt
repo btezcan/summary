@@ -1,0 +1,2 @@
+-2147483648
+Arithmetic operation resulted in an overflow.

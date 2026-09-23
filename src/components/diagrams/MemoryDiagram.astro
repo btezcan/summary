@@ -1,0 +1,129 @@
+---
+// Chapter 2 diagram: the state after the "value-reference" samples run.
+// Left: C# stack frame and heap (including a value-type field that lives on the
+// heap inside an object). Right: Python names bound to objects.
+// Colors come from theme tokens, so the diagram follows light/dark mode.
+---
+
+<figure class="cs-diagram">
+	<div class="cs-diagram__grid">
+		<div class="cs-diagram__panel">
+			<p class="cs-diagram__title">C#: stack and heap</p>
+			<svg viewBox="0 0 380 256" role="img" aria-labelledby="mem-cs-title mem-cs-desc">
+				<title id="mem-cs-title">C# memory after the example</title>
+				<desc id="mem-cs-desc">
+					The stack frame holds a = 5 and b = 10 as separate values, and x, y and s as references.
+					x and y point to the same int array on the heap, containing 99, 2, 3. s points to a Student
+					object on the heap, whose int field Age = 20 is stored inside the object, on the heap.
+				</desc>
+				<defs>
+					<marker id="mem-cs-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+						<path d="M0,0 L10,5 L0,10 z" class="d-arrowhead"></path>
+					</marker>
+				</defs>
+
+				<text x="14" y="30" class="d-label">Stack (this method)</text>
+				<rect x="10" y="40" width="150" height="206" rx="6" class="d-region"></rect>
+
+				<g class="d-row">
+					<text x="26" y="72" class="d-name">a</text>
+					<rect x="66" y="54" width="80" height="28" rx="4" class="d-cell"></rect>
+					<text x="106" y="73" class="d-value" text-anchor="middle">5</text>
+				</g>
+				<g class="d-row">
+					<text x="26" y="112" class="d-name">b</text>
+					<rect x="66" y="94" width="80" height="28" rx="4" class="d-cell"></rect>
+					<text x="106" y="113" class="d-value" text-anchor="middle">10</text>
+				</g>
+				<g class="d-row">
+					<text x="26" y="152" class="d-name">x</text>
+					<rect x="66" y="134" width="80" height="28" rx="4" class="d-cell"></rect>
+					<circle cx="106" cy="148" r="4" class="d-dot"></circle>
+				</g>
+				<g class="d-row">
+					<text x="26" y="192" class="d-name">y</text>
+					<rect x="66" y="174" width="80" height="28" rx="4" class="d-cell"></rect>
+					<circle cx="106" cy="188" r="4" class="d-dot"></circle>
+				</g>
+				<g class="d-row">
+					<text x="26" y="232" class="d-name">s</text>
+					<rect x="66" y="214" width="80" height="28" rx="4" class="d-cell"></rect>
+					<circle cx="106" cy="228" r="4" class="d-dot"></circle>
+				</g>
+
+				<text x="204" y="30" class="d-label">Heap</text>
+				<rect x="200" y="40" width="170" height="206" rx="6" class="d-region d-region--heap"></rect>
+
+				<text x="216" y="118" class="d-type">int[]</text>
+				<rect x="216" y="126" width="138" height="30" rx="4" class="d-cell"></rect>
+				<line x1="262" y1="126" x2="262" y2="156" class="d-divider"></line>
+				<line x1="308" y1="126" x2="308" y2="156" class="d-divider"></line>
+				<text x="239" y="146" class="d-value" text-anchor="middle">99</text>
+				<text x="285" y="146" class="d-value" text-anchor="middle">2</text>
+				<text x="331" y="146" class="d-value" text-anchor="middle">3</text>
+
+				<text x="216" y="196" class="d-type">Student</text>
+				<rect x="216" y="204" width="138" height="32" rx="4" class="d-cell"></rect>
+				<text x="228" y="225" class="d-value">Age: 20</text>
+				<text x="304" y="225" class="d-note">int</text>
+
+				<line x1="110" y1="148" x2="213" y2="136" class="d-arrow" marker-end="url(#mem-cs-arrow)"></line>
+				<line x1="110" y1="188" x2="213" y2="148" class="d-arrow" marker-end="url(#mem-cs-arrow)"></line>
+				<line x1="110" y1="228" x2="213" y2="220" class="d-arrow" marker-end="url(#mem-cs-arrow)"></line>
+			</svg>
+		</div>
+
+		<div class="cs-diagram__panel">
+			<p class="cs-diagram__title">Python: names and objects</p>
+			<svg viewBox="0 0 380 256" role="img" aria-labelledby="mem-py-title mem-py-desc">
+				<title id="mem-py-title">Python memory after the example</title>
+				<desc id="mem-py-desc">
+					Every name refers to an object. a refers to the int object 5, b to the int object 10.
+					x and y both refer to the same list object containing 99, 2, 3.
+				</desc>
+				<defs>
+					<marker id="mem-py-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+						<path d="M0,0 L10,5 L0,10 z" class="d-arrowhead"></path>
+					</marker>
+				</defs>
+
+				<text x="14" y="30" class="d-label">Names</text>
+				<rect x="10" y="40" width="110" height="206" rx="6" class="d-region"></rect>
+				<text x="204" y="30" class="d-label">Objects</text>
+				<rect x="200" y="40" width="170" height="206" rx="6" class="d-region d-region--heap"></rect>
+
+				<rect x="30" y="58" width="70" height="28" rx="4" class="d-cell"></rect>
+				<text x="65" y="77" class="d-name" text-anchor="middle">a</text>
+				<rect x="30" y="102" width="70" height="28" rx="4" class="d-cell"></rect>
+				<text x="65" y="121" class="d-name" text-anchor="middle">b</text>
+				<rect x="30" y="160" width="70" height="28" rx="4" class="d-cell"></rect>
+				<text x="65" y="179" class="d-name" text-anchor="middle">x</text>
+				<rect x="30" y="204" width="70" height="28" rx="4" class="d-cell"></rect>
+				<text x="65" y="223" class="d-name" text-anchor="middle">y</text>
+
+				<rect x="216" y="58" width="96" height="28" rx="4" class="d-cell"></rect>
+				<text x="228" y="77" class="d-note">int</text>
+				<text x="290" y="77" class="d-value" text-anchor="middle">5</text>
+				<rect x="216" y="102" width="96" height="28" rx="4" class="d-cell"></rect>
+				<text x="228" y="121" class="d-note">int</text>
+				<text x="290" y="121" class="d-value" text-anchor="middle">10</text>
+
+				<text x="216" y="170" class="d-type">list</text>
+				<rect x="216" y="178" width="138" height="30" rx="4" class="d-cell"></rect>
+				<line x1="262" y1="178" x2="262" y2="208" class="d-divider"></line>
+				<line x1="308" y1="178" x2="308" y2="208" class="d-divider"></line>
+				<text x="239" y="198" class="d-value" text-anchor="middle">99</text>
+				<text x="285" y="198" class="d-value" text-anchor="middle">2</text>
+				<text x="331" y="198" class="d-value" text-anchor="middle">3</text>
+
+				<line x1="100" y1="72" x2="213" y2="72" class="d-arrow" marker-end="url(#mem-py-arrow)"></line>
+				<line x1="100" y1="116" x2="213" y2="116" class="d-arrow" marker-end="url(#mem-py-arrow)"></line>
+				<line x1="100" y1="174" x2="213" y2="188" class="d-arrow" marker-end="url(#mem-py-arrow)"></line>
+				<line x1="100" y1="218" x2="213" y2="200" class="d-arrow" marker-end="url(#mem-py-arrow)"></line>
+			</svg>
+		</div>
+	</div>
+	<figcaption>
+		<slot />
+	</figcaption>
+</figure>
