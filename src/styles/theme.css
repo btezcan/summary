@@ -62,6 +62,8 @@
 	/* Sizes: 56rem fits two ~48-character code columns side by side (<Pair>);
 	   prose stays at most ~70 characters wide. */
 	--sl-content-width: 56rem;
+	/* Narrower sidebars (Starlight default 18.75rem) leave room for <Pair>. */
+	--sl-sidebar-width: 16rem;
 	--cs-prose-width: 70ch;
 	--sl-text-body: 1.0625rem;
 	--sl-line-height: 1.7;
@@ -239,4 +241,45 @@ pre,
 .sl-markdown-content thead th {
 	background: var(--cs-paper-deep);
 	color: var(--cs-ink);
+}
+
+/* --- "On this page" as a dropdown below 100rem ---------------------------------
+ * Starlight shows the page table of contents as a right-hand column from 72rem.
+ * That column costs 16rem, which would stack every <Pair> on 1280–1536px laptops.
+ * Between 72rem and 100rem we keep Starlight's phone behavior instead: the table of
+ * contents is the "On this page" dropdown under the header, and the content gets
+ * the full width. These rules override Starlight's own layout classes
+ * (TwoColumnContent, PageSidebar); re-check with screenshots after Starlight updates. */
+@media (min-width: 72rem) and (max-width: 99.99rem) {
+	html[data-has-toc] {
+		--sl-mobile-toc-height: 3rem;
+		scroll-padding-top: calc(1.5rem + var(--sl-nav-height) + var(--sl-mobile-toc-height));
+	}
+
+	.right-sidebar-container {
+		position: static;
+		width: auto;
+	}
+
+	.right-sidebar {
+		position: static;
+		width: auto;
+		height: auto;
+		padding-top: 0;
+		border-inline-start: 0;
+		overflow: visible;
+	}
+
+	.right-sidebar-container .lg\:sl-hidden {
+		display: block;
+	}
+
+	.right-sidebar-panel {
+		display: none;
+	}
+
+	[data-has-sidebar][data-has-toc] .main-pane {
+		--sl-content-margin-inline: auto;
+		width: 100%;
+	}
 }
