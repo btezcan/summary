@@ -1,5 +1,309 @@
 ---
-title: "Methods and Functions"
+title: Methods and Functions
+description: Declaring methods (C#) and functions (Python), return values, optional and named arguments, overloading, how arguments are passed, variable arguments, tuples and recursion.
 ---
 
-This chapter is being written.
+import { Pair, Sample, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- A **method** (C#) always belongs to a type; a **function** (Python) can stand
+  on its own. Both take parameters and may return a value.
+- C# declares the return type (`int`, or `void` for nothing). A Python function
+  without `return` returns `None`.
+- **Arguments are passed the same way in both languages** for everyday code: the
+  function gets its own variable that refers to the caller's object. It can
+  change a mutable object, but it can't rebind the caller's variable.
+- C# can **overload** (same name, different parameters) and has `ref` / `out`.
+  Python has neither; it uses default arguments, different names and tuples.
+- A Python default argument is evaluated **once**, when the function is defined.
+  A mutable default like `[]` is shared by every call.
+
+## Concept
+
+### Declaring and calling
+
+A C# method states its **return type**, its **name** and its **parameters with
+types**. In a top-level program, methods written below the statements are
+*local functions*; in bigger programs they live in classes (chapter 8). A Python
+function starts with `def`; type hints are optional but recommended.
+
+<Pair id="functions/anatomy">
+  C# needs the types; Python's hints (`x: int`, `-> int`) document the same
+  contract and let mypy check calls. Python functions must be defined *before*
+  the line that calls them runs; C# methods can appear anywhere in the file.
+</Pair>
+
+### Returning nothing
+
+<Pair id="functions/void-none">
+  `void` means "returns nothing" and the compiler forbids using the result. A
+  Python function always returns something: without `return`, it's `None`.
+  Printing that `None` is legal but almost always a bug, and mypy says so.
+</Pair>
+
+**Early returns** keep functions flat: handle the special cases first, then the
+normal case.
+
+<Pair id="functions/early-return" />
+
+### Optional and named arguments
+
+Both languages let a parameter have a **default value**, and both let the caller
+name an argument. Named arguments make calls with several `bool` or number
+parameters readable.
+
+<Pair id="functions/optional-named">
+  `shout: true` (C#) and `shout=True` (Python) skip the middle parameter. C#
+  defaults must be compile-time constants. Python evaluates its defaults once,
+  when `def` runs — which is harmless for strings and numbers and a trap for lists
+  (see Common Mistakes).
+</Pair>
+
+### Overloading
+
+C# can have several methods with the **same name and different parameter
+lists**; the compiler picks one by the argument types. Python can't: a second
+`def` with the same name simply **replaces** the first. Python code uses
+different names, default arguments or `*args` instead.
+
+<Pair id="functions/overloading">
+  Top-level local functions can't be overloaded, so the C# version puts the
+  methods in a `static class` — the usual home for helper methods.
+</Pair>
+
+### How arguments are passed
+
+This is the most important place where the two languages **agree**. Passing an
+argument gives the function its **own parameter variable**, initialized from the
+caller's value.
+
+- For C# value types (`int`, `double`, structs), that value is a copy of the data.
+- For C# reference types (arrays, lists, classes) and for **every** Python value,
+  it is a reference to the same object.
+
+So a function can **change the object** it received (if the object is mutable),
+but **assigning** to the parameter only changes the function's own variable.
+
+<Pair id="functions/pass-reference">
+  Same result, same reason. `Reset` changed the shared array; `Replace` pointed
+  its own parameter at a new array, which the caller never sees. People call
+  Python's model "pass by object reference" or "pass by assignment"; C#'s default
+  is "pass by value", where the value of a reference-type variable is the
+  reference.
+</Pair>
+
+### Only in C#: ref and out
+
+`ref` passes the **caller's variable itself**, so the method can assign to it.
+`out` is like `ref` but the method must assign it, which is how `TryParse`
+returns two results. Python has no equivalent; it returns several values in a
+tuple instead.
+
+<Pair id="functions/swap">
+  In Python, `x, y = y, x` swaps without any function. The C# method is a
+  demonstration of `ref`; C# also has tuple swapping: `(x, y) = (y, x)`.
+</Pair>
+
+<Pair id="functions/out-param">
+  The `Try…` pattern with `out` is idiomatic C#. The Python version returns
+  `None` on failure — an `Optional` result that the caller must check (mypy
+  enforces the check). Raising an exception is the other common Python choice.
+</Pair>
+
+### Variable numbers of arguments
+
+<Pair id="functions/variadic">
+  `params int[] numbers` and `*numbers` both collect any number of arguments —
+  into an array in C#, a tuple in Python. Note `0` versus `0.0`: the C# method
+  returns `double`, but a `double` 0 prints as `0`.
+</Pair>
+
+Python also has `**kwargs`, which collects **named** arguments into a
+dictionary. C# has no direct equivalent.
+
+<Sample id="functions/kwargs" lang="py" />
+
+### Returning several values
+
+<Pair id="functions/tuple-return">
+  Both languages return a tuple and **deconstruct** it into two variables. C#
+  tuples can name their elements (`Min`, `Max`); Python can do the same with a
+  `NamedTuple` or a dataclass (chapter 9).
+</Pair>
+
+### Functions inside functions
+
+<Pair id="functions/local-functions">
+  A helper used by only one function can live inside it. `=>` gives C# a
+  one-expression body; Python's equivalent is a one-line `return`.
+</Pair>
+
+### Recursion
+
+A **recursive** function calls itself on a smaller problem until it reaches a
+**base case**. Each active call occupies a frame on the **call stack**, so very
+deep recursion runs out of stack.
+
+<Pair id="functions/recursion-limit">
+  The languages fail differently. A C# stack overflow **cannot be caught**: the
+  `catch` never runs and the process ends immediately. CPython stops at a
+  recursion limit (1000 by default) and raises `RecursionError`, which you can
+  catch. In both, prefer a loop when the depth depends on the input size.
+</Pair>
+
+## Examples
+
+### Factorial
+
+<Pair id="functions/factorial">
+  `20!` fits in a `long`; `21!` doesn't, and C# silently wraps to a negative
+  number. Python's integers just grow. Use `checked` or `BigInteger` in C# when
+  results can get this large.
+</Pair>
+
+### Fibonacci: recursion versus a loop
+
+<Pair id="functions/fibonacci">
+  The recursive version recomputes the same values again and again: 2.7 million
+  calls for `n = 30`, and roughly 1.6 times more for every step up. The loop does
+  30 steps. Python can keep the recursive shape and remember earlier results with
+  the `@functools.cache` decorator.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Ignoring the return value" wrong="functions/m-ignore-return" right="functions/m-ignore-return-fixed">
+  `Math.Abs(x)` returns a new value; it can't change `x`. Python has the same
+  trap: `abs(x)` alone on a line does nothing.
+</Mistake>
+
+<Mistake lang="cs" title="A path that returns nothing" wrong="functions/m-not-all-paths" right="functions/m-not-all-paths-fixed">
+  C# checks that every path returns a value. Python doesn't — see the third
+  Predict exercise below.
+</Mistake>
+
+<Mistake lang="cs" title="Passing the wrong type" wrong="functions/m-wrong-arg" right="functions/m-wrong-arg-fixed">
+  C# checks argument types at the call. Text from the user must be parsed first.
+</Mistake>
+
+<Mistake lang="py" title="Forgetting return" wrong="functions/m-no-return" right="functions/m-no-return-fixed">
+  The function computes the average and throws it away, so it returns `None`.
+  The program runs; mypy reports the missing `return`.
+</Mistake>
+
+<Mistake lang="py" title="A mutable default argument" wrong="functions/m-mutable-default" right="functions/m-mutable-default-fixed">
+  The default list is created **once**, when `def` runs, and every call without
+  `items` shares it. Use `None` as the default and create the list inside.
+</Mistake>
+
+<Mistake lang="py" title="Trying to overload a function" wrong="functions/m-redefine" right="functions/m-redefine-fixed">
+  The second `def area` replaced the first, so `area(1)` calls the two-parameter
+  version. mypy reports both the redefinition and the bad call.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="functions/p-param-rebind">
+  Both print `5`. The function increments its **own** parameter; the caller's
+  `n` is untouched. In C#, `ref int x` would change that; Python would return
+  the new value instead.
+</Predict>
+
+<Predict id="functions/p-recursion-order">
+  Each call prints its number, makes the recursive call, and prints the number
+  again **after** the inner calls return. So the numbers go down, then back up.
+</Predict>
+
+<Predict id="functions/p-missing-return" lang="py">
+  For `0`, neither `if` matches, so the function falls off the end and returns
+  `None`. The C# version of this code doesn't compile (CS0161, above). mypy
+  catches it too.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'What does a Python function return if it has no `return` statement?',
+    options: ['`0`', '`None`', 'An empty string', 'It is a syntax error'],
+    answer: 1,
+    explanation: 'Every Python function returns a value; without `return` it is `None`. The C# equivalent is a `void` method, whose result can\'t be used at all.',
+  },
+  {
+    question: 'A function receives a list and runs `items.append(4)`. What does the caller see?',
+    options: [
+      'The caller\'s list now contains 4',
+      'Nothing: the function got a copy of the list',
+      'An error: parameters are read-only',
+      'It depends on whether a type hint is used',
+    ],
+    answer: 0,
+    explanation: 'The parameter refers to the same list object. The same is true for a C# `List<int>` passed to a method. Only assigning a new list to the parameter would not affect the caller.',
+  },
+  {
+    question: 'In Python, you define `def area(r)` and later `def area(w, h)`. What happens?',
+    options: [
+      'Python picks the right one by the number of arguments',
+      'It is a syntax error',
+      'The second definition replaces the first',
+      'Both exist, like C# overloads',
+    ],
+    answer: 2,
+    explanation: 'A `def` binds a name, like an assignment. The second binding replaces the first. C# supports real overloading.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'functions/m-mutable-default',
+    lang: 'py',
+    options: [
+      '`[\'a\']` then `[\'b\']`',
+      '`[\'a\']` then `[\'a\', \'b\']`',
+      '`[\'a\', \'b\']` twice',
+      'A `TypeError`',
+    ],
+    answer: 1,
+    explanation: 'The default list is created once and shared, so the second call appends to the list the first call returned.',
+  },
+  {
+    question: 'Which C# keyword lets a method assign to the caller\'s variable?',
+    options: ['`params`', '`ref`', '`static`', '`return`'],
+    answer: 1,
+    explanation: '`ref` (and `out`) pass the variable itself instead of its value. Python has no equivalent; return the new value, or a tuple.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Define', '`static int Square(int x) { return x * x; }`', '`def square(x: int) -> int: return x * x`'],
+    ['One-expression body', '`static int Square(int x) => x * x;`', '`return` on one line'],
+    ['No return value', '`void`', '`-> None` (returns `None`)'],
+    ['Default value', '`string word = "Hello"`', '`word: str = "Hello"`'],
+    ['Named argument', '`Greeting("Ali", shout: true)`', '`greeting("Ali", shout=True)`'],
+    ['Any number of args', '`params int[] numbers`', '`*numbers`'],
+    ['Named extra args', '—', '`**details`'],
+    ['Several results', '`(int Min, int Max)` tuple', '`return lo, hi`'],
+    ['Change caller\'s variable', '`ref int x`, `out int x`', 'return the new value'],
+    ['Same name, other params', 'overloading', 'different names or defaults'],
+    ['Function inside a function', 'local function', 'nested `def`'],
+    ['Too-deep recursion', 'stack overflow: process ends', '`RecursionError` (catchable)'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Here is a C# method with `ref` and `out` parameters. Show me the idiomatic
+  Python version and explain why Python doesn't need `ref`."
+- "Give me four small functions in Python and C# that receive a list. For each,
+  ask me whether the caller's list changes before you tell me."
+
+<Note type="warning" title="Verify it yourself">
+  AI-written Python often contains `def f(x, items=[])` or forgets a `return` on
+  one branch — and both run without an error. Run mypy on AI code, and test every
+  function twice in a row to catch shared default arguments.
+</Note>

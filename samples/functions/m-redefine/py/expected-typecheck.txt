@@ -1,0 +1,2 @@
+main.py:6: error: Name "area" already defined on line 1  [no-redef]
+main.py:10: error: Too many arguments for "area"  [call-arg]

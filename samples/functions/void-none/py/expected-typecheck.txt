@@ -1,0 +1,1 @@
+main.py:5: error: "greet" does not return a value (it only ever returns None)  [func-returns-value]

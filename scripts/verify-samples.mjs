@@ -458,9 +458,11 @@ function parseCSharpDiagnostics(output, dir) {
 	return [...seen];
 }
 
-/** The uncaught .NET exception header: from "Unhandled exception." up to the stack trace. */
+/** The uncaught .NET exception header: from "Unhandled exception." up to the stack trace.
+ *  A stack overflow is reported differently (it can't be caught): just "Stack overflow.". */
 function dotnetExceptionHeader(stderr) {
 	const all = stderr.split('\n');
+	if (all[0] === 'Stack overflow.') return all[0];
 	const start = all.findIndex((l) => l.startsWith('Unhandled exception.'));
 	if (start < 0) return null;
 	const out = [];

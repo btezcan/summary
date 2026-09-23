@@ -1,0 +1,1 @@
+Program.cs(3,15): error CS0161: 'Sign(int)': not all code paths return a value

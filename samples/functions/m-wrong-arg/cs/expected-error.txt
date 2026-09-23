@@ -1,0 +1,1 @@
+Program.cs(2,26): error CS1503: Argument 1: cannot convert from 'string' to 'int'
