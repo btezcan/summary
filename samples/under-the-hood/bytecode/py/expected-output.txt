@@ -1,0 +1,5 @@
+  4           RESUME                   0
+
+  5           LOAD_FAST_BORROW_LOAD_FAST_BORROW 1 (a, b)
+              BINARY_OP                0 (+)
+              RETURN_VALUE

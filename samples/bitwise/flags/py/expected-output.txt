@@ -1,0 +1,5 @@
+Permission.READ|WRITE
+True
+False
+3
+Permission.READ

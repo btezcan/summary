@@ -1,0 +1,88 @@
+---
+title: Git Basics
+description: Saving and sharing code with Git — init, add, commit, status, log, .gitignore for .NET and Python projects, and GitHub.
+---
+
+import { Note, Compare } from '~/components';
+
+## Summary
+
+- **Git** records snapshots (**commits**) of a project folder, so you can see
+  what changed, go back, and work with others.
+- The daily loop: change files → `git status` → `git add` → `git commit -m "…"`.
+- A **`.gitignore`** file lists what must *not* be committed: build output
+  (`bin/`, `obj/`), caches (`__pycache__/`) and virtual environments (`.venv/`).
+- **GitHub** (or GitLab) stores a copy of the repository online: `git push`
+  uploads your commits, `git pull` downloads others'.
+
+## The daily loop
+
+```sh
+git init                      # once: make this folder a repository
+git status                    # what changed?
+git add Program.cs            # stage a file for the next commit
+git add .                     # …or everything that changed
+git commit -m "Add grade calculator"
+git log --oneline             # the history, one line per commit
+git diff                      # changes not staged yet
+```
+
+A good commit is **small** and has a message that says **what** changed and
+**why**: "Fix average when the list is empty", not "update".
+
+## .gitignore
+
+Generated files don't belong in the repository: they are large, they change on
+every build, and everyone can recreate them. The .NET SDK can create a complete
+file for you with `dotnet new gitignore`. A minimal one for a folder with both
+languages:
+
+```text title=".gitignore"
+# .NET build output
+bin/
+obj/
+
+# Python
+__pycache__/
+.venv/
+.mypy_cache/
+.pytest_cache/
+
+# Editors and operating systems
+.vs/
+.idea/
+.DS_Store
+```
+
+<Note type="warning" title="Never commit secrets">
+  Passwords and API keys in code stay in the Git history even after you delete
+  them in a later commit. Keep them in environment variables or a file listed in
+  `.gitignore`.
+</Note>
+
+## Working with GitHub
+
+```sh
+git clone https://github.com/user/project.git   # copy a repository
+git remote add origin https://github.com/user/project.git
+git push -u origin main       # first upload of the main branch
+git pull                      # get others' commits
+```
+
+## Cheat Sheet
+
+<Compare
+  headers={['Task', 'Command']}
+  rows={[
+    ['Start a repository', '`git init`'],
+    ['See what changed', '`git status`, `git diff`'],
+    ['Stage changes', '`git add file`, `git add .`'],
+    ['Save a snapshot', '`git commit -m "message"`'],
+    ['History', '`git log --oneline`'],
+    ['Undo changes to a file (not yet staged)', '`git restore file`'],
+    ['Unstage a file', '`git restore --staged file`'],
+    ['New branch and switch to it', '`git switch -c feature`'],
+    ['Copy / upload / download', '`git clone url`, `git push`, `git pull`'],
+    ['Ignore files', '`.gitignore` (`dotnet new gitignore`)'],
+  ]}
+/>

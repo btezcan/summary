@@ -1,0 +1,60 @@
+---
+title: Date and Time
+description: Dates, times and durations — DateOnly, DateTime and TimeSpan versus date, datetime and timedelta — formatting, an age calculation, and a word on time zones.
+---
+
+import { Pair, Note, Compare } from '~/components';
+
+## Summary
+
+- A date without a time: `DateOnly` (C#) ↔ `date` (Python). A date with a time:
+  `DateTime` ↔ `datetime`. A duration: `TimeSpan` ↔ `timedelta`.
+- Subtracting two dates gives a duration. Adding a duration to a date gives a
+  date.
+- Format explicitly (`yyyy-MM-dd` ↔ `%Y-%m-%d`). The default text depends on
+  the culture in C#, and names like "Wednesday" depend on the locale in Python.
+- Real programs rarely use fixed dates; they call `DateTime.Now` /
+  `datetime.now()`. The samples here use fixed dates so their output never
+  changes.
+
+## Examples
+
+<Pair id="date-time/basics">
+  An age is not `days / 365` (leap years): subtract the years, then take one
+  off if this year's birthday hasn't come yet. C# compares dates directly; the
+  Python version compares `(month, day)` tuples. `DayNumber` in C# and
+  subtraction in Python give the number of days between two dates. C#'s default
+  text for a date follows the culture: `10/23/2026` here (invariant culture), but
+  `23.10.2026` on a Turkish computer.
+</Pair>
+
+<Pair id="date-time/durations">
+  Subtracting two `DateTime` / `datetime` values gives a duration. The default
+  text differs slightly (`01:45:00` versus `1:45:00`). `TotalMinutes` returns a
+  `double`; Python only has `total_seconds()`, so divide by 60.
+</Pair>
+
+<Note type="warning" title="Time zones">
+  `DateTime.Now` and `datetime.now()` return the **local** time of the computer,
+  without a time zone attached. For times that are stored or compared across
+  places, use UTC (`DateTime.UtcNow`, `datetime.now(timezone.utc)`) or a type
+  that carries its offset (`DateTimeOffset`). Converting between named zones
+  such as "Europe/Istanbul" uses `TimeZoneInfo` in C# and `zoneinfo` in Python.
+</Note>
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['A date', '`new DateOnly(2026, 9, 23)`', '`date(2026, 9, 23)`'],
+    ['Date and time', '`new DateTime(2026, 9, 23, 9, 30, 0)`', '`datetime(2026, 9, 23, 9, 30)`'],
+    ['Now / today', '`DateTime.Now`, `DateOnly.FromDateTime(DateTime.Now)`', '`datetime.now()`, `date.today()`'],
+    ['Duration', '`TimeSpan.FromDays(30)`', '`timedelta(days=30)`'],
+    ['Add', '`d.AddDays(30)`, `dt.AddHours(2.5)`', '`d + timedelta(days=30)`'],
+    ['Difference', '`dt2 - dt1` (a `TimeSpan`)', '`dt2 - dt1` (a `timedelta`)'],
+    ['Format', '`$"{d:yyyy-MM-dd}"`', '`f"{d:%Y-%m-%d}"`'],
+    ['Parse', '`DateOnly.ParseExact(s, "yyyy-MM-dd", CultureInfo.InvariantCulture)`', '`date.fromisoformat(s)`'],
+    ['Weekday', '`d.DayOfWeek`', '`d.weekday()` (Monday = 0), `d.strftime("%A")`'],
+  ]}
+/>

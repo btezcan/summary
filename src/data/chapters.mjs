@@ -49,11 +49,20 @@ export const chapterGroups = [
 	},
 ];
 
-/** Listed separately in the sidebar; not part of the progress checklist. */
-export const extraPages = [
-	{ slug: 'appendices', label: 'Appendices' },
-	{ slug: 'cheat-sheet', label: 'Cheat Sheet' },
+/** Short optional pages, listed after the chapters; not part of the progress checklist. */
+export const appendices = [
+	{ slug: 'appendices', label: 'Overview' },
+	{ slug: 'appendices/operator-overloading', label: 'Operator Overloading' },
+	{ slug: 'appendices/indexers', label: 'Indexers and __getitem__' },
+	{ slug: 'appendices/bitwise', label: 'Bitwise Operators' },
+	{ slug: 'appendices/under-the-hood', label: 'Under the Hood' },
+	{ slug: 'appendices/date-time', label: 'Date and Time' },
+	{ slug: 'appendices/git-basics', label: 'Git Basics' },
+	{ slug: 'appendices/old-code', label: 'Old Code You May See' },
 ];
+
+/** Listed separately in the sidebar; not part of the progress checklist. */
+export const extraPages = [{ slug: 'cheat-sheet', label: 'Cheat Sheet' }];
 
 /** Chapter number (from 1), matching the numbering in docs/content-spec.md. */
 export const allChapters = chapterGroups

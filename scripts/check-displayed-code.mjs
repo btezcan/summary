@@ -49,11 +49,20 @@ function regions(text) {
 
 const chapters = process.argv.slice(2).length
 	? process.argv.slice(2)
-	: fs.readdirSync(path.join(ROOT, 'samples')).filter((d) => fs.existsSync(path.join(ROOT, 'dist', d, 'index.html')));
+	: fs.readdirSync(path.join(ROOT, 'samples')).filter((d) => pageFor(d));
+
+/** The built page for a samples folder: /<folder>/ or, for appendices, /appendices/<folder>/. */
+function pageFor(folder) {
+	for (const rel of [[folder], ['appendices', folder]]) {
+		const p = path.join(ROOT, 'dist', ...rel, 'index.html');
+		if (fs.existsSync(p)) return p;
+	}
+	return null;
+}
 
 let failures = 0;
 for (const ch of chapters) {
-	const shown = codeBlocks(fs.readFileSync(path.join(ROOT, 'dist', ch, 'index.html'), 'utf8'));
+	const shown = codeBlocks(fs.readFileSync(pageFor(ch), 'utf8'));
 	const missing = [];
 	let ok = 0;
 	for (const ex of fs.readdirSync(path.join(ROOT, 'samples', ch))) {

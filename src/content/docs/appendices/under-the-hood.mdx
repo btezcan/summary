@@ -1,0 +1,80 @@
+---
+title: Under the Hood
+description: Optional background — IL and the JIT compiler versus CPython bytecode, and generational garbage collection versus reference counting.
+---
+
+import { Pair, Sample, Note, Compare } from '~/components';
+
+<Note type="tip" title="Optional">
+  You don't need this page to write correct programs. It explains *why* some
+  things in the chapters behave the way they do.
+</Note>
+
+## Summary
+
+- **C#:** the compiler turns source code into **IL** (Intermediate Language),
+  stored in an **assembly** (`.dll`). At run time the **JIT** (just-in-time)
+  compiler turns IL into machine code, method by method.
+- **Python (CPython):** source code is compiled to **bytecode**, which an
+  **interpreter loop** executes instruction by instruction. `dis.dis` shows it.
+- **.NET** frees memory with a **generational, tracing garbage collector**: it
+  periodically finds objects that nothing reaches any more.
+- **CPython** counts **references** to each object and frees it the moment the
+  count reaches zero; a separate **cycle collector** handles objects that refer
+  to each other.
+
+## From source code to running code
+
+```
+C#:      Program.cs ──csc──▶ Program.dll (IL) ──JIT──▶ machine code
+Python:  main.py ──compile──▶ bytecode (.pyc) ──interpreter loop──▶ runs
+```
+
+The C# compiler checks types **before** anything runs — that's why the chapters
+show so many compile errors. Python compiles too, but only checks the syntax;
+names and types are looked up **while running**.
+
+Python's bytecode is easy to look at:
+
+<Sample id="under-the-hood/bytecode" lang="py" />
+
+<Note type="version" version="Python 3.14">
+  The bytecode changes between Python versions. This is the output of 3.14;
+  Python 3.12 shows two separate `LOAD_FAST` instructions instead of the combined
+  `LOAD_FAST_BORROW_LOAD_FAST_BORROW`. Bytecode is an implementation detail —
+  never rely on it.
+</Note>
+
+For C#, tools such as ILSpy or the website SharpLab show the IL of your code.
+The JIT also explains why the first call of a method is slightly slower than
+later calls, and why .NET can optimize for the exact processor it runs on.
+
+## Memory: two strategies
+
+<Pair id="under-the-hood/memory">
+  C#: a new object starts in **generation 0**. Each collection it survives
+  promotes it, up to generation 2, which is collected least often — most objects
+  die young, so collecting the young generation is cheap. Python: the count rose
+  to 3 when `alias` referred to the same list, and fell back when `del alias`
+  removed that reference. (`sys.getrefcount` adds one for its own argument.)
+</Pair>
+
+This explains a difference from chapter 15: in CPython a file object that loses
+its last reference is closed **immediately**, while in .NET an undisposed
+`StreamWriter` waits for the garbage collector. Neither is a substitute for
+`using` / `with`.
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C# / .NET', 'Python (CPython)']}
+  rows={[
+    ['Compiled to', 'IL in an assembly (`.dll`)', 'bytecode (`__pycache__/*.pyc`)'],
+    ['Executed by', 'JIT → machine code', 'interpreter loop'],
+    ['Look at it', 'ILSpy, SharpLab', '`import dis; dis.dis(f)`'],
+    ['Types checked', 'at compile time', 'at run time (mypy: before)'],
+    ['Memory freed by', 'generational tracing GC', 'reference counting + cycle collector'],
+    ['Inspect', '`GC.GetGeneration(obj)`', '`sys.getrefcount(obj)`, `gc` module'],
+    ['Force a collection', '`GC.Collect()` (rarely useful)', '`gc.collect()` (rarely useful)'],
+  ]}
+/>

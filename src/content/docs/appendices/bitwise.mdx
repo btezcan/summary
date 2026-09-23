@@ -1,0 +1,61 @@
+---
+title: Bitwise Operators
+description: "Bitwise operators on integers, negative numbers, and flag enums — [Flags] in C# and enum.Flag in Python."
+---
+
+import { Pair, Note, Compare } from '~/components';
+
+## Summary
+
+- Bitwise operators work on the individual bits of integers. The symbols are the
+  same in both languages: `&` (and), `|` (or), `^` (xor), `~` (not), `<<` and
+  `>>` (shifts).
+- `x << n` multiplies by 2ⁿ, `x >> n` divides by 2ⁿ (rounding down).
+- C# `int` has 32 bits, so shifts can overflow. Python integers are unbounded:
+  nothing wraps, and there is no unsigned shift.
+- **Flag enums** store several yes/no options in one number:
+  `[Flags] enum` in C#, `enum.Flag` in Python.
+
+## Examples
+
+<Pair id="bitwise/basics">
+  `0b` writes a binary literal in both languages. `Convert.ToString(x, 2)` and
+  the format spec `:b` print binary. `x & 1` is the lowest bit, so it tells odd
+  from even. In Python, `&` binds more tightly than `==`, so `7 & 1 == 1` means
+  `(7 & 1) == 1`; C# needs the parentheses.
+</Pair>
+
+<Pair id="bitwise/negative">
+  `~x` is `-(x + 1)` in both languages (two's complement). `>>` on a negative
+  number keeps the sign. C# 11 added `>>>`, which shifts zeros in and ignores the
+  sign; Python has no fixed width, so you first mask the value to 32 bits. The
+  last line shows the real difference: C# wraps to `-2`, Python just grows.
+</Pair>
+
+<Pair id="bitwise/flags">
+  Each option is one bit, so options combine with `|`, are tested with `&` (or
+  `HasFlag` / `in`) and removed with `& ~`. Always give each member a power of
+  two and include a zero member. Unix file permissions (`chmod 755`) work the
+  same way.
+</Pair>
+
+<Note type="version" version="C# 11">
+  The unsigned right shift `>>>` is a C# 11 feature, so it works with the C# 12
+  default this guide uses.
+</Note>
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Binary literal', '`0b1010`, `0b_1010_0000`', '`0b1010`, `0b_1010_0000`'],
+    ['Print as binary', '`Convert.ToString(x, 2)`', '`f"{x:b}"`, `bin(x)`'],
+    ['And, or, xor', '`a & b`, `a | b`, `a ^ b`', '`a & b`, `a | b`, `a ^ b`'],
+    ['Not', '`~x` (= `-(x+1)`)', '`~x` (= `-(x+1)`)'],
+    ['Shifts', '`x << n`, `x >> n`, `x >>> n`', '`x << n`, `x >> n`'],
+    ['Test a bit', '`(x & (1 << n)) != 0`', '`x & (1 << n) != 0`'],
+    ['Flag enum', '`[Flags] enum P { Read = 1, … }`', '`class P(Flag): READ = 1`'],
+    ['Has flag', '`p.HasFlag(P.Read)`', '`P.READ in p`'],
+  ]}
+/>

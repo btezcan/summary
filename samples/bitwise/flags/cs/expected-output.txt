@@ -1,0 +1,5 @@
+Read, Write
+True
+False
+3
+Read

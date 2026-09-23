@@ -1,0 +1,98 @@
+---
+title: Old Code You May See
+description: Outdated C# and Python you will still meet in textbooks, old answers and AI output — ArrayList, String.Format, csc.exe, .NET Framework, Python 2, %-formatting, os.path — and what to use instead.
+---
+
+import { Pair, Sample, Note, Compare } from '~/components';
+
+## Summary
+
+- Old code still compiles or runs in many cases, but it is not how you should
+  write new code.
+- **C#:** `ArrayList` and `Hashtable` (untyped) → `List<T>` and
+  `Dictionary<K, V>`; `String.Format("{0}", x)` → `$"{x}"`; `csc.exe` → the
+  `dotnet` CLI; .NET Framework → modern .NET.
+- **Python:** Python 2 (`print "x"`, `raw_input`, `xrange`, `/` on integers
+  truncating) → Python 3; `%`-formatting → f-strings; `os.path` → `pathlib`.
+- AI assistants sometimes produce old styles because a lot of old code exists.
+  Recognize them and ask for the modern version.
+
+## The same program, old and new
+
+Old style:
+
+<Pair id="old-code/old-style">
+  Both still run. `ArrayList` accepts any object, so `42` went in next to a name
+  and every read needs a cast that can fail at run time. `String.Format` and `%`
+  match placeholders by position, which gets error-prone with many values.
+  `os.path` works on plain strings.
+</Pair>
+
+Modern style:
+
+<Pair id="old-code/modern">
+  `List<string>` rejects `42` at compile time. Interpolation and f-strings put
+  each value where it appears. `pathlib` paths are objects with attributes such
+  as `suffix`.
+</Pair>
+
+## Python 2
+
+Python 2 reached its end of life in 2020, but its code is still on the web and
+in old books. Much of it doesn't even compile in Python 3:
+
+<Sample id="old-code/python2" lang="py" />
+
+<Compare
+  caption="Python 2 → Python 3"
+  headers={['Python 2', 'Python 3', 'Note']}
+  rows={[
+    ['`print "x"`', '`print("x")`', '`print` is a function'],
+    ['`raw_input()`', '`input()`', 'Python 2\'s `input()` evaluated the text as code'],
+    ['`xrange(10)`', '`range(10)`', '`range` is lazy now'],
+    ['`7 / 2` → `3`', '`7 / 2` → `3.5`, `7 // 2` → `3`', 'silent change — no error'],
+    ['`u"text"`', '`"text"`', 'all strings are Unicode'],
+    ['`dict.has_key(k)`', '`k in d`', ''],
+    ['`except ValueError, e:`', '`except ValueError as e:`', ''],
+  ]}
+/>
+
+## Other old C# you may see
+
+<Note type="history" title="csc.exe and .NET Framework">
+  Old instructions compile with `csc.exe Program.cs` from a "Developer Command
+  Prompt" and target **.NET Framework** 4.x, which only runs on Windows and gets
+  no new C# features. Modern .NET (5 and later) runs on Windows, macOS and
+  Linux; you create and run projects with `dotnet new` and `dotnet run`
+  (chapter 1).
+</Note>
+
+<Note type="history" title="Destructors / finalizers">
+  `~Student() { … }` is a finalizer. Old material presents it as the place to
+  clean up; in practice it runs at an unpredictable time, if at all. Use
+  `IDisposable` and `using` (chapter 15). Python's `__del__` has the same
+  problem — use `with`.
+</Note>
+
+<Note type="history" title="The old Main method">
+  Before C# 9, every program needed `class Program { static void Main(string[]
+  args) { … } }` and a `namespace { … }` block around it. Top-level statements
+  and file-scoped namespaces (C# 10) do the same with less code.
+</Note>
+
+## Cheat Sheet
+
+<Compare
+  headers={['You see', 'Use instead']}
+  rows={[
+    ['`ArrayList`, `Hashtable`', '`List<T>`, `Dictionary<TKey, TValue>`'],
+    ['`String.Format("{0} {1}", a, b)`', '`$"{a} {b}"`'],
+    ['`csc.exe`, .NET Framework', '`dotnet new`, `dotnet run`, .NET 8/10'],
+    ['`~Student()` for cleanup', '`IDisposable` + `using`'],
+    ['`static void Main` in a class', 'top-level statements'],
+    ['`print "x"`, `raw_input`, `xrange`', '`print("x")`, `input`, `range`'],
+    ['`"%s is %d" % (name, age)`', '`f"{name} is {age}"`'],
+    ['`"{} {}".format(a, b)`', '`f"{a} {b}"` (`.format` is still fine for templates)'],
+    ['`os.path.join`, `os.path.splitext`', '`Path(...) / ...`, `.suffix`'],
+  ]}
+/>

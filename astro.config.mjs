@@ -1,7 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import { chapterGroups, extraPages } from './src/data/chapters.mjs';
+import { appendices, chapterGroups, extraPages } from './src/data/chapters.mjs';
 import remarkBaseLinks from './src/plugins/remark-base-links.mjs';
 
 // TODO: replace with the real GitHub repository once it exists.
@@ -35,6 +35,11 @@ export default defineConfig({
 					label: group.label,
 					items: group.chapters.map((c) => ({ label: c.label, slug: c.slug })),
 				})),
+				{
+					label: 'Appendices',
+					collapsed: true,
+					items: appendices.map((p) => ({ label: p.label, slug: p.slug })),
+				},
 				{
 					label: 'Reference',
 					items: extraPages.map((p) => ({ label: p.label, slug: p.slug })),

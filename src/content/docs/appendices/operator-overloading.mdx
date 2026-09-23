@@ -1,0 +1,48 @@
+---
+title: Operator Overloading
+description: Making +, == and > work on your own types — operator methods in C# and dunder methods in Python.
+---
+
+import { Pair, Note, Compare } from '~/components';
+
+## Summary
+
+- Both languages let your own types use operators such as `+`, `==` and `>`.
+- **C#:** write a `public static` method named `operator +`. **Python:** write a
+  special ("dunder", double-underscore) method such as `__add__`.
+- Records and dataclasses already give you `==` that compares values.
+- Overload an operator only when its meaning is obvious — money plus money,
+  vector plus vector. Otherwise, write a named method.
+
+## Example
+
+<Pair id="operator-overloading/money">
+  A C# `record struct` and a Python `@dataclass(frozen=True)` both generate
+  value equality, so `==` works without extra code. `+` and `>` are defined by
+  hand. Both refuse to add different currencies instead of returning a wrong
+  amount. C# requires operators in pairs: defining `>` forces you to define `<`
+  too (and `==` forces `!=`); Python has no such rule.
+</Pair>
+
+<Note type="tip" title="Python: the reversed methods">
+  For `a + b`, Python first calls `a.__add__(b)`. If that returns
+  `NotImplemented`, it tries `b.__radd__(a)`. That's how `2 * vector` can work
+  when only the vector knows about multiplication. C# needs a second `operator *`
+  overload with the parameters swapped.
+</Note>
+
+## Cheat Sheet
+
+<Compare
+  headers={['Operator', 'C#', 'Python']}
+  rows={[
+    ['`a + b`', '`static T operator +(T a, T b)`', '`def __add__(self, other)`'],
+    ['`a - b`', '`operator -`', '`__sub__`'],
+    ['`a * b`', '`operator *`', '`__mul__` (and `__rmul__`)'],
+    ['`a == b`', '`operator ==` + `!=`, `Equals`, `GetHashCode` (records: generated)', '`__eq__` (dataclasses: generated)'],
+    ['`a < b`', '`operator <` + `>`, or `IComparable<T>`', '`__lt__` (or `@dataclass(order=True)`)'],
+    ['`-a`', '`operator -(T a)`', '`__neg__`'],
+    ['`str(a)`', '`override ToString()`', '`__str__`'],
+    ['Not allowed', '`&&`, `||`, `=`, `.`', '`and`, `or`, `not`, `is`, `=`'],
+  ]}
+/>
