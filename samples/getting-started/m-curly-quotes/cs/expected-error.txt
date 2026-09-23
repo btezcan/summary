@@ -1,0 +1,2 @@
+Program.cs(1,19): error CS1056: Unexpected character '“'
+Program.cs(1,25): error CS1056: Unexpected character '”'

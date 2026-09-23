@@ -1,0 +1,4 @@
+  File "main.py", line 1
+    print "Hello"
+    ^^^^^^^^^^^^^
+SyntaxError: Missing parentheses in call to 'print'. Did you mean print(...)?

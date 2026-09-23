@@ -1,0 +1,52 @@
+---
+// Chapter 1 diagram: how a C# program and a Python program get from source code to
+// a running process. Plain HTML (not SVG) so the steps reflow into a vertical list
+// on narrow screens instead of shrinking into unreadable text.
+interface Step {
+	label: string;
+	note: string;
+	kind: 'file' | 'tool';
+}
+
+const lanes: { title: string; steps: Step[] }[] = [
+	{
+		title: 'C#',
+		steps: [
+			{ label: 'Program.cs', note: 'your source code', kind: 'file' },
+			{ label: 'C# compiler', note: 'dotnet build (or dotnet run)', kind: 'tool' },
+			{ label: 'HelloApp.dll', note: 'IL: intermediate language', kind: 'file' },
+			{ label: 'CLR with JIT', note: 'compiles IL to machine code while running', kind: 'tool' },
+			{ label: 'Running program', note: 'memory freed by a tracing GC', kind: 'file' },
+		],
+	},
+	{
+		title: 'Python (CPython)',
+		steps: [
+			{ label: 'main.py', note: 'your source code', kind: 'file' },
+			{ label: 'Bytecode compiler', note: 'runs automatically on python main.py', kind: 'tool' },
+			{ label: 'Bytecode', note: 'cached as .pyc in __pycache__ for imported modules', kind: 'file' },
+			{ label: 'Interpreter loop', note: 'executes the bytecode', kind: 'tool' },
+			{ label: 'Running program', note: 'memory freed by reference counting + a cycle collector', kind: 'file' },
+		],
+	},
+];
+---
+
+<figure class="cs-pipeline">
+	{
+		lanes.map((lane) => (
+			<div class="cs-pipeline__lane">
+				<p class="cs-pipeline__title">{lane.title}</p>
+				<ol class="cs-pipeline__steps">
+					{lane.steps.map((s) => (
+						<li class="cs-pipeline__step" data-kind={s.kind}>
+							<span class="cs-pipeline__label">{s.label}</span>
+							<span class="cs-pipeline__note">{s.note}</span>
+						</li>
+					))}
+				</ol>
+			</div>
+		))
+	}
+	<figcaption><slot /></figcaption>
+</figure>

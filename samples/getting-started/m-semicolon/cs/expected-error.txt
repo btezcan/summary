@@ -1,0 +1,1 @@
+Program.cs(1,27): error CS1002: ; expected

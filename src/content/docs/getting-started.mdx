@@ -1,5 +1,283 @@
 ---
-title: "Getting Started"
+title: Getting Started
+description: Install .NET and Python, create and run a first program in each, understand the files involved and how the code actually runs.
 ---
 
-This chapter is being written.
+import { FileTree } from '@astrojs/starlight/components';
+import { Pair, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+import PipelineDiagram from '~/components/diagrams/PipelineDiagram.astro';
+
+## Summary
+
+- **C#** needs the **.NET SDK**; you create a project with `dotnet new console`
+  and run it with `dotnet run`. **Python** needs a **Python interpreter**; you
+  run a file with `python main.py`.
+- C# code is **compiled** to intermediate language (IL) first, then turned into
+  machine code while it runs. Python compiles to **bytecode** automatically and
+  interprets it — there is no separate build step for you.
+- A small C# program can be just statements (**top-level statements**); a Python
+  file always runs from top to bottom.
+- `using` (C#) makes a namespace's names available; `import` (Python) loads a
+  module.
+- Both languages are **case-sensitive**: `WriteLine` is not `Writeline`, `print`
+  is not `Print`.
+
+## Concept
+
+### Install and check
+
+Install the **.NET SDK** (version 10 at the time of writing) from Microsoft's .NET
+website, and **Python 3.14** from python.org — or with `uv`, a fast Python
+installer and package manager. Then check both from a terminal:
+
+```sh
+dotnet --version
+python --version     # on Windows: py --version
+```
+
+<Note type="warning" title="Don't rely on the system Python">
+  macOS and many Linux distributions ship an old Python for their own tools (this
+  site was checked on a Mac whose built-in `python3` is 3.9). Install a current
+  version yourself and make sure `python --version` shows it.
+</Note>
+
+### Create and run a program
+
+**C#** programs live in a **project**: a folder with a `.csproj` file that says
+which .NET version to target.
+
+```sh
+dotnet new console -n HelloApp
+cd HelloApp
+dotnet run
+```
+
+<FileTree>
+- HelloApp/
+  - HelloApp.csproj project settings (target framework, nullable, …)
+  - Program.cs your code
+  - obj/ intermediate build files
+  - bin/ the built program — appears after the first build
+</FileTree>
+
+<Note type="version" version=".NET 10">
+  A single file can also run without a project: `dotnet run hello.cs`. The
+  samples on this site are single files like that, so every C# example here
+  runs on its own.
+</Note>
+
+**Python** runs a file directly. There is no project file and no build command:
+
+```sh
+python main.py       # run a file
+python               # interactive prompt (REPL); leave with exit()
+```
+
+For real projects, create a **virtual environment**: a folder with its own
+Python and its own installed packages, so projects don't disturb each other.
+
+```sh
+python -m venv .venv          # or: uv venv
+```
+
+### Program structure
+
+A new C# project uses **top-level statements**: the file contains just the
+statements to run, and the compiler generates the `Main` method for you. The
+classic form writes `Main` inside a class. Both are valid C#; you'll see the
+classic form in older code and in bigger programs.
+
+A Python file runs from top to bottom. When a file can also be **imported** as a
+module, code that should run only when the file is started directly goes under
+`if __name__ == "__main__":`.
+
+<Pair id="getting-started/entry-point">
+  C#'s `Main` is the fixed entry point the runtime calls. Python has no required
+  entry point; the `__name__` check is a convention that stops `main()` from
+  running when another file does `import main`.
+</Pair>
+
+### Namespaces and modules
+
+`using System.Text;` lets you write `StringBuilder` instead of
+`System.Text.StringBuilder`. New projects import the most common namespaces
+automatically (**implicit usings**), which is why `Console` and `Math` work
+without any `using`. In Python, `import math` loads the `math` module and you
+write `math.sqrt`; `from datetime import date` brings in just one name.
+
+<Pair id="getting-started/imports">
+  Note the results: C#'s `Math.Sqrt(16)` prints `4` and Python's
+  `math.sqrt(16)` prints `4.0`. Both return a floating-point number; C# just
+  doesn't show `.0` for whole values.
+</Pair>
+
+### How the code runs
+
+<PipelineDiagram>
+  C# is compiled ahead of time to IL, and the CLR's just-in-time (JIT) compiler
+  turns IL into machine code while the program runs. CPython compiles source to
+  bytecode each time (caching it for imported modules) and then interprets it.
+  Memory is managed automatically in both, differently: .NET's garbage collector
+  periodically traces which objects are still reachable; CPython frees most
+  objects the moment their reference count drops to zero, and a cycle collector
+  handles objects that refer to each other.
+</PipelineDiagram>
+
+The practical consequences: C# reports type errors and typos **before** the
+program runs. Python reports most of them only when the line runs — unless you
+use a type checker (chapter 2).
+
+### Editors
+
+Any editor works. Common choices: **VS Code** with the C# Dev Kit and Python
+extensions, **Visual Studio** (Windows), **JetBrains Rider** (C#) and **PyCharm**
+(Python). Whatever you use, learn to run programs from a terminal too; that's
+what exams, labs and servers do.
+
+## Examples
+
+### Hello, World
+
+<Pair id="getting-started/hello">
+  One line in each language. C# needs the semicolon and the class name
+  `Console`; Python's `print` is a built-in function.
+</Pair>
+
+### Reading input
+
+<Pair id="getting-started/input-name">
+  Both programs received `Ayşe` from the keyboard. C#'s `Console.ReadLine()`
+  returns `string?` because it gives `null` at the end of input; Python's
+  `input()` returns a `str` and raises `EOFError` instead. `input` also prints
+  the prompt for you.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Wrong capitalization" wrong="getting-started/m-case" right="getting-started/m-case-fixed">
+  C# is case-sensitive: `Writeline` and `WriteLine` are different names, and
+  only one exists. Keywords are lowercase too: `class`, not `Class`.
+</Mistake>
+
+<Mistake lang="cs" title="Curly quotes copied from a document" wrong="getting-started/m-curly-quotes" right="getting-started/m-curly-quotes-fixed">
+  Word processors and slides replace `"` with typographic quotes `“ ”`. Code
+  needs straight quotes. Paste code into an editor, not a word processor.
+</Mistake>
+
+<Mistake lang="cs" title="Missing semicolon" wrong="getting-started/m-semicolon" right="getting-started/m-semicolon-fixed">
+  Every C# statement ends with `;`. The error points to the end of the line
+  that is missing it.
+</Mistake>
+
+<Mistake lang="py" title="Unexpected indentation" wrong="getting-started/m-indent" right="getting-started/m-indent-fixed">
+  In Python, indentation is syntax. A line may only be indented when it belongs
+  to a block, such as the body of an `if` or a loop.
+</Mistake>
+
+<Mistake lang="py" title="Python 2 print statement" wrong="getting-started/m-print-statement" right="getting-started/m-print-statement-fixed">
+  `print "Hello"` is Python 2, which ended in 2020. Old tutorials and some AI
+  answers still use it. In Python 3, `print` is a function and needs
+  parentheses.
+</Mistake>
+
+<Mistake lang="py" title="Wrong capitalization" wrong="getting-started/m-case" right="getting-started/m-case-fixed">
+  Python is case-sensitive as well. C# refuses to compile; Python fails only when
+  the line runs — mypy reports it earlier.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="getting-started/p-write">
+  `Write` and `print(..., end="")` don't end the line, so `A` and `B` share a
+  line. An empty `WriteLine()` / `print()` just ends the current line.
+</Predict>
+
+<Predict id="getting-started/p-print-args">
+  C# evaluates `"a" + 1 + true` as string concatenation: `a1True`. Python's
+  `print` takes several arguments and separates them with a space, unless you
+  pass `sep=""`. Both write booleans as `True`.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'Which command creates a new C# console project?',
+    options: ['`dotnet create console`', '`dotnet new console -n HelloApp`', '`csc new HelloApp`', '`dotnet run --new`'],
+    answer: 1,
+    explanation: '`dotnet new console` creates the project; `-n` names it. `csc.exe` is the old command-line compiler you may see in outdated tutorials.',
+  },
+  {
+    question: 'What does the C# compiler produce from `Program.cs`?',
+    options: ['Machine code for your CPU', 'Python bytecode', 'IL in an assembly (`.dll`)', 'An HTML page'],
+    answer: 2,
+    explanation: 'The compiler produces intermediate language (IL). The CLR\'s JIT compiler turns it into machine code while the program runs.',
+  },
+  {
+    question: 'In a Python file, when does code under `if __name__ == "__main__":` run?',
+    options: [
+      'Always',
+      'Only when the file is run directly, not when it is imported',
+      'Only when it is imported',
+      'Only inside a virtual environment',
+    ],
+    answer: 1,
+    explanation: 'When you run `python main.py`, `__name__` is `"__main__"`. When another file imports it, `__name__` is the module name, so the block is skipped.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'getting-started/p-print-args',
+    lang: 'py',
+    options: ['`a1True` twice', '`a 1 True` then `a1True`', '`a 1 true` then `a1true`', 'A `TypeError`'],
+    answer: 1,
+    explanation: '`print` separates its arguments with a space by default; `sep=""` removes it. Python\'s booleans are `True` and `False`.',
+  },
+  {
+    question: 'Why is a virtual environment useful in Python?',
+    options: [
+      'It makes Python code run faster',
+      'It gives each project its own installed packages',
+      'It is required to run any Python file',
+      'It compiles Python to machine code',
+    ],
+    answer: 1,
+    explanation: 'Each project can install the package versions it needs without affecting other projects. Small scripts, like the samples here, don\'t need one.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Check the version', '`dotnet --version`', '`python --version`'],
+    ['New program', '`dotnet new console -n App`', 'create `main.py`'],
+    ['Run', '`dotnet run`', '`python main.py`'],
+    ['Run one file', '`dotnet run hello.cs` (.NET 10)', '`python hello.py`'],
+    ['Interactive prompt', '—', '`python`'],
+    ['Isolated packages', 'per project (`.csproj`)', '`python -m venv .venv`'],
+    ['Print a line', '`Console.WriteLine(x);`', '`print(x)`'],
+    ['Print without newline', '`Console.Write(x);`', '`print(x, end="")`'],
+    ['Read a line', '`Console.ReadLine()`', '`input("prompt: ")`'],
+    ['Use a library', '`using System.Text;`', '`import math`'],
+    ['Comment', '`// comment`', '`# comment`'],
+    ['End of statement', '`;`', 'end of line'],
+    ['Block', '`{ … }`', 'indentation after `:`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "I get this error when I run `dotnet run` / `python main.py`: … Explain what
+  it means and what I should check, but don't give me the fixed code."
+- "Explain, step by step, what happens between typing `dotnet run` and seeing
+  output. Then do the same for `python main.py`."
+
+<Note type="warning" title="Verify it yourself">
+  AI answers sometimes mix up versions: Python 2 syntax, old .NET Framework
+  commands (`csc.exe`), or project files from years ago. Check the version
+  numbers in any setup instructions against `dotnet --version` and
+  `python --version` on your own machine.
+</Note>

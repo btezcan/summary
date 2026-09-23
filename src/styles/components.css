@@ -898,3 +898,101 @@
 		color: var(--cs-muted);
 	}
 }
+
+/* --- Pipeline diagram (chapter 1) ----------------------------------------------
+ * Horizontal steps with arrows on wide columns, a vertical list on narrow ones.
+ * Tools (compilers, runtimes) have a dashed border; files and results a solid one. */
+
+.cs-pipeline {
+	margin-inline: 0;
+	container-type: inline-size;
+}
+
+.sl-markdown-content .cs-pipeline {
+	margin-top: var(--cs-gap);
+}
+
+.cs-pipeline__lane + .cs-pipeline__lane {
+	margin-top: 1rem;
+}
+
+.cs-pipeline__title {
+	font-weight: 700;
+	font-size: var(--sl-text-sm);
+	color: var(--cs-ink);
+}
+
+.sl-markdown-content .cs-pipeline__steps {
+	list-style: none;
+	padding: 0;
+	margin: 0.4rem 0 0;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 1.4rem;
+}
+
+.sl-markdown-content .cs-pipeline__steps > li + li {
+	margin-top: 0;
+}
+
+@container (min-width: 46rem) {
+	.sl-markdown-content .cs-pipeline__steps {
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: 1.6rem;
+	}
+}
+
+.cs-pipeline__step {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	padding: 0.5rem 0.65rem;
+	border: 1px solid var(--cs-line-strong);
+	border-radius: var(--cs-radius);
+	background: var(--cs-paper-raised);
+}
+
+.cs-pipeline__step[data-kind='tool'] {
+	border-style: dashed;
+	background: var(--cs-paper-deep);
+}
+
+/* Arrow to the next step: below on narrow screens, to the right on wide ones. */
+.cs-pipeline__step + .cs-pipeline__step::before {
+	content: '↓';
+	position: absolute;
+	top: -1.35rem;
+	left: 1rem;
+	color: var(--cs-kobalt);
+	font-weight: 700;
+}
+
+@container (min-width: 46rem) {
+	.cs-pipeline__step + .cs-pipeline__step::before {
+		content: '→';
+		top: 50%;
+		left: -1.35rem;
+		transform: translateY(-50%);
+	}
+}
+
+.cs-pipeline__label {
+	font-family: var(--__sl-font-mono);
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--cs-ink);
+}
+
+.cs-pipeline__note {
+	font-size: var(--sl-text-xs);
+	line-height: 1.4;
+	color: var(--cs-muted);
+}
+
+.cs-pipeline figcaption {
+	margin-top: 0.75rem;
+	max-width: var(--cs-prose-width);
+	font-size: var(--sl-text-sm);
+	color: var(--cs-muted);
+}
