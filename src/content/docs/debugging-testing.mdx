@@ -1,5 +1,262 @@
 ---
-title: "Debugging and Testing"
+title: Debugging and Testing
+description: Reading compiler errors and runtime errors, a debugging strategy, the debugger, and unit tests with xUnit and pytest — in C# and Python side by side.
 ---
 
-This chapter is being written.
+import { FileTree } from '@astrojs/starlight/components';
+import { Pair, Sample, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- **C#** finds many mistakes **before** the program runs (compiler errors with a
+  code like `CS0103`, a file and a line). **Python** finds most of them only
+  **when the line runs** — unless you use a type checker such as mypy.
+- Debug systematically: **reproduce → isolate → form a hypothesis → check it →
+  fix → add a test** so the bug can't come back.
+- A **debugger** lets you pause at a **breakpoint**, step line by line and watch
+  variables. Print statements are the quick alternative.
+- **Unit tests** check small pieces of code automatically: **xUnit** (`[Fact]`,
+  `[Theory]`, `Assert.Equal`) in C#, **pytest** (functions named `test_…`,
+  plain `assert`) in Python.
+- Test the **boundaries** — 0, 1, the largest value, the exact limit (`90` and
+  `89`). That's where bugs live.
+
+## Concept
+
+### When errors are found
+
+<Pair id="debugging-testing/undefined-name">
+  The same typo. C# refuses to build the program (CS0103), so nothing runs. Python
+  starts the program and fails only when it reaches the line — here right away,
+  but in a rarely used branch that could be months later. Python and mypy both
+  suggest the fix: "did you mean `total`?".
+</Pair>
+
+<Compare
+  caption="Common C# compiler errors (all shown by real samples on this site)"
+  headers={['Code', 'Meaning', 'Usual fix']}
+  rows={[
+    ['CS0103', 'The name does not exist', 'typo, or the variable is declared in another scope'],
+    ['CS1002', '`;` expected', 'add the semicolon at the end of the reported line'],
+    ['CS0117', 'Type has no member with that name', 'check spelling and capitalization (`WriteLine`)'],
+    ['CS0165', 'Use of unassigned local variable', 'give the variable a value first'],
+    ['CS0029', 'Cannot implicitly convert type', 'use the right type, or parse / convert'],
+    ['CS0266', 'Cannot convert implicitly; an explicit conversion exists', 'cast, e.g. `(int)x`, if losing data is OK'],
+    ['CS1503', 'Argument has the wrong type', 'convert the argument, e.g. `int.Parse(text)`'],
+    ['CS0161', 'Not all code paths return a value', 'add the missing `return`'],
+    ['CS0120', 'Object reference required for non-static member', 'create an object, or make the member `static`'],
+    ['CS1061', 'Type has no such member', 'arrays have `Length`, lists have `Count`'],
+    ['CS8602', 'Possible null dereference (warning)', 'check for `null` first'],
+  ]}
+/>
+
+<Sample id="debugging-testing/narrowing-error" lang="cs" />
+
+Python's most common errors, and where you'll see them: `SyntaxError` and
+`IndentationError` (before anything runs), `NameError` (a typo), `TypeError`
+(wrong type, e.g. `"a" + 1`), `AttributeError` (often a `None`), `ValueError`
+(e.g. `int("abc")`), `IndexError` and `KeyError`. Chapter 12 shows how to read
+their tracebacks.
+
+### A debugging strategy
+
+1. **Reproduce** the bug with the smallest input that shows it.
+2. **Isolate** it: which function, which line? Comment out, split, or test
+   pieces.
+3. **Hypothesize**: "the loop skips the first element".
+4. **Check** the hypothesis with a print statement, a debugger or a test — don't
+   change code at random.
+5. **Fix** the cause, not the symptom.
+6. **Add a test** that failed before the fix and passes after it.
+
+<Pair id="debugging-testing/debug-prints">
+  The average of 70, 80 and 90 should be 80. The debug output shows the loop
+  starting at `i=1`: the first score is never added. A few well-placed prints
+  confirm or reject a hypothesis quickly; remove them once the bug is fixed.
+</Pair>
+
+### The debugger
+
+Every IDE (VS Code, Visual Studio, Rider, PyCharm) has a debugger with the same
+core ideas:
+
+- **Breakpoint** — the program pauses before executing this line.
+- **Step over** — run the current line, stop at the next one.
+- **Step into** — go inside the method or function called on this line.
+- **Watch / Locals** — see variable values while paused.
+- **Call stack** — which functions called which to get here (the same
+  information as a stack trace or traceback).
+
+Python also has a built-in way to stop: put `breakpoint()` on a line to start the
+`pdb` debugger in the terminal there.
+
+### Unit tests
+
+A **unit test** calls a small piece of code with known input and checks the
+result automatically. Tests follow the **Arrange–Act–Assert** pattern: prepare the
+data, call the code, check the result.
+
+- **C#:** tests live in a separate **test project** (`dotnet new xunit`).
+  `[Fact]` marks a test; `[Theory]` with `[InlineData]` runs one test for many
+  inputs. Run them with `dotnet test`.
+- **Python:** pytest finds files named `test_*.py` and functions named
+  `test_…`, and a plain `assert` does the checking. `@pytest.mark.parametrize` is
+  the counterpart of `[Theory]`. Run them with `python -m pytest`.
+
+The code under test (C# on the left, Python on the right):
+
+<Pair id="debugging-testing/grader-tests" csFile="Grader.cs" pyFile="grader.py" output={false} />
+
+The tests, and what the test runners report:
+
+<Pair id="debugging-testing/grader-tests" csFile="GraderTests.cs" pyFile="test_grader.py">
+  Each `InlineData` row / `parametrize` tuple is one test case, so both runners
+  report 6 tests. The rows around each limit — 90 and 89, 50 and 49 — are the
+  **boundary** cases. `Assert.Throws` and `pytest.raises` check that invalid input
+  is rejected.
+</Pair>
+
+A typical layout keeps the program and its tests side by side:
+
+<FileTree>
+- GradeApp/
+  - src/
+    - GradeApp/ the program (a console or class-library project)
+  - tests/
+    - GradeApp.Tests/ `dotnet new xunit`, references ../../src/GradeApp
+</FileTree>
+
+<FileTree>
+- grade_app/
+  - grader.py the code
+  - tests/
+    - test_grader.py pytest finds it by its name
+</FileTree>
+
+The C# test project file, as created by `dotnet new xunit` in .NET 10 (without
+the optional code-coverage package):
+
+<Sample id="debugging-testing/grader-tests" lang="cs" file="GradeApp.Tests.csproj" output={false} />
+
+## Examples
+
+### A test catches a boundary bug
+
+Someone "simplifies" the grader and writes `> 90` instead of `>= 90`. Everything
+still compiles and most grades are still right. The boundary test fails:
+
+<Pair id="debugging-testing/grader-bug" csFile="Grader.cs" pyFile="grader.py">
+  Both runners name the exact failing case — score 90, expected `AA`, got `DD`
+  — and all other cases still pass. Without the `90` row, this bug would have
+  reached students' grades.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Assert.True for comparisons" wrong="debugging-testing/m-assert-true" right="debugging-testing/m-assert-true-fixed" wrongFile="GraderTests.cs" rightFile="GraderTests.cs">
+  Both tests catch the bug (the grader still has the `> 90` bug), but
+  `Assert.True` only reports "Expected True, Actual False". `Assert.Equal` shows
+  what came out. The argument order is `Assert.Equal(expected, actual)`.
+</Mistake>
+
+<Mistake lang="py" title="A test function without the test_ prefix" wrong="debugging-testing/m-not-collected" right="debugging-testing/m-not-collected-fixed" wrongFile="test_average.py" rightFile="test_average.py">
+  pytest only runs functions whose names start with `test`. The wrong version
+  contains a failing check, but it never runs — "no tests ran" is not a success.
+</Mistake>
+
+<Mistake lang="py" title="Comparing floats with ==" wrong="debugging-testing/m-float-equal" right="debugging-testing/m-float-equal-fixed" wrongFile="test_prices.py" rightFile="test_prices.py">
+  `0.1 + 0.2` is `0.30000000000000004` (chapter 2). `pytest.approx` compares
+  with a small tolerance. In xUnit, `Assert.Equal(0.3, actual, 10)` compares to
+  10 decimal places.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="debugging-testing/p-first-error">
+  The C# compiler reports **every** error it finds in one build, so you see
+  both lines at once. Python stops at the **first** runtime error; the undefined
+  name on line 2 is never reached — only mypy reports it without running.
+</Predict>
+
+<Predict id="debugging-testing/p-assert-message" lang="py">
+  `assert condition, message` raises `AssertionError` with the message when the
+  condition is false. Use asserts for "this can't happen" checks and in tests —
+  not to validate user input, because `python -O` removes them.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'What does pytest report for this file?',
+    sample: 'debugging-testing/q-parametrize',
+    lang: 'py',
+    file: 'test_square.py',
+    options: ['1 passed', '2 passed', '4 passed', '3 passed, 1 failed'],
+    answer: 2,
+    explanation: 'The parametrized test runs once per value (3 times), plus `test_zero`: 4 tests. xUnit counts each `InlineData` row the same way.',
+  },
+  {
+    question: 'A function should give "AA" for scores from 90 to 100. Which test inputs are most valuable?',
+    options: ['95 only', '90 and 89 (and 100 and 101)', 'Random numbers', 'Only negative numbers'],
+    answer: 1,
+    explanation: 'Bugs cluster at boundaries: `>` versus `>=`, off-by-one limits. Test the value on each side of every limit.',
+  },
+  {
+    question: 'When does Python report a misspelled variable name?',
+    options: [
+      'Before the program starts, like C#',
+      'When the line runs (or earlier, if you run mypy)',
+      'Never',
+      'Only in functions',
+    ],
+    answer: 1,
+    explanation: 'Python raises `NameError` when it executes the line. The C# compiler reports CS0103 before anything runs.',
+  },
+  {
+    question: 'Which xUnit attribute runs one test method for several inputs?',
+    options: ['`[Fact]`', '`[Theory]` with `[InlineData]`', '`[Test]`', '`[Repeat]`'],
+    answer: 1,
+    explanation: '`[Theory]` + `[InlineData(…)]` is the counterpart of pytest\'s `@pytest.mark.parametrize`.',
+  },
+  {
+    question: 'What is the last step of the debugging strategy on this page?',
+    options: ['Remove all print statements', 'Add a test that fails before the fix', 'Restart the computer', 'Ask a classmate'],
+    answer: 1,
+    explanation: 'A test that reproduces the bug proves the fix works and keeps the bug from coming back unnoticed.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C# (xUnit)', 'Python (pytest)']}
+  rows={[
+    ['Create tests', '`dotnet new xunit -n App.Tests`', 'a file `test_app.py`'],
+    ['Run tests', '`dotnet test`', '`python -m pytest`'],
+    ['One test', '`[Fact] public void Name() { … }`', '`def test_name():`'],
+    ['Many inputs', '`[Theory]` + `[InlineData(95, "AA")]`', '`@pytest.mark.parametrize(…)`'],
+    ['Equal', '`Assert.Equal(expected, actual)`', '`assert actual == expected`'],
+    ['True / false', '`Assert.True(x)`, `Assert.False(x)`', '`assert x`, `assert not x`'],
+    ['Expect an exception', '`Assert.Throws<ArgumentException>(() => F())`', '`with pytest.raises(ValueError): f()`'],
+    ['Floats', '`Assert.Equal(0.3, x, 10)`', '`assert x == pytest.approx(0.3)`'],
+    ['Stop in the debugger', 'breakpoint in the IDE', 'breakpoint in the IDE, or `breakpoint()`'],
+    ['Errors found', 'mostly at compile time', 'mostly at runtime (mypy: before)'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Here is my function. List the boundary cases a good test suite should cover,
+  but don't write the tests — I'll write them and you review them."
+- "I have this bug: [expected vs actual]. Ask me questions, one at a time, that
+  help me find the cause myself."
+
+<Note type="warning" title="Verify it yourself">
+  AI can generate tests quickly, but it often tests only the easy middle values,
+  or copies the (buggy) output of the code into the expected values — then the
+  tests "pass" and prove nothing. Check each expected value yourself, and make
+  sure at least one test **fails** when you deliberately break the code.
+</Note>

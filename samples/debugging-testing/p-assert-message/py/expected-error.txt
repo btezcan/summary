@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "main.py", line 2, in <module>
+    assert count == 4, f"want 4 items, got {count}"
+           ^^^^^^^^^^
+AssertionError: want 4 items, got 3

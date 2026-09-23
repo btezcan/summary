@@ -1,0 +1,1 @@
+Program.cs(1,5): warning CS0219: The variable 'total' is assigned but its value is never used

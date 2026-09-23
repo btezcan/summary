@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "main.py", line 2, in <module>
+    print(totl)
+          ^^^^
+NameError: name 'totl' is not defined. Did you mean: 'total'?

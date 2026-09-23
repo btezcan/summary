@@ -37,7 +37,9 @@ extra modules next to `main.py`.
 |---|---|
 | `"expect": "compile-error"` | A compile error (C#) or `SyntaxError` (Python) is expected — the wrong side of a Mistake. |
 | `"expect": "exception"` | An uncaught exception is expected; the header (C#) or full traceback (Python) is stored. |
-| `"expect": "test"` | C# project run with `dotnet test`. |
+| `"expect": "test"` | Run the tests: `dotnet test` (C# project) or pytest (`test_*.py`). The report — failures and summary, without timings — is stored. |
+| `"failingTests": true` | With `"expect": "test"`: some tests are supposed to fail (the failure report is the lesson). |
+| `"sandbox": true` | Run in a fresh temporary copy of the folder (samples that write files). |
 | `"culture": true` | Locale data enabled. The sample must set its culture/locale explicitly in code. |
 | `"langVersion": "13"` | C# only: uses a feature newer than C# 12. Add `<Note type="version">` on the page. |
 | `"minPython": "3.13"` | Python only: needs a version newer than 3.12. Add `<Note type="version">` on the page. |

@@ -5,7 +5,7 @@
 // Layout: samples/<chapter>/<example>/cs/ and samples/<chapter>/<example>/py/
 
 const files = import.meta.glob<string>(
-	['/samples/**/*.{cs,py,txt,json,csv}', '!/samples/**/{bin,obj,__pycache__}/**'],
+	['/samples/**/*.{cs,py,txt,json,csv,csproj}', '!/samples/**/{bin,obj,__pycache__}/**'],
 	{ query: '?raw', import: 'default', eager: true },
 );
 
@@ -23,6 +23,8 @@ export interface Sample {
 	expect: Expect;
 	culture: boolean;
 	wide: boolean;
+	/** expect "test": the test run is supposed to report failures. */
+	failingTests: boolean;
 	langVersion?: string;
 	minPython?: string;
 	input?: string;
@@ -59,6 +61,7 @@ export function getSample(id: string, lang: Lang): Sample {
 		expect: opts.expect ?? 'run',
 		culture: opts.culture ?? false,
 		wide: opts.wide ?? false,
+		failingTests: opts.failingTests ?? false,
 		langVersion: opts.langVersion,
 		minPython: opts.minPython,
 		input: read(id, lang, 'input.txt'),
@@ -68,7 +71,8 @@ export function getSample(id: string, lang: Lang): Sample {
 		typecheck: read(id, lang, 'expected-typecheck.txt'),
 	};
 
-	const needsOutput = (sample.expect === 'run' && !opts.buildOnly) || sample.expect === 'exception';
+	const needsOutput =
+		(sample.expect === 'run' && !opts.buildOnly) || sample.expect === 'exception' || sample.expect === 'test';
 	const needsError = sample.expect === 'compile-error' || sample.expect === 'exception';
 	if ((needsOutput && sample.output === undefined) || (needsError && sample.error === undefined)) {
 		throw new Error(
@@ -134,6 +138,14 @@ export function outputBlocks(sample: Sample): OutputBlock[] {
 		blocks.push({ variant: 'compile-error', label, text: trim(sample.error!) });
 		return blocks;
 	}
+	if (sample.expect === 'test') {
+		blocks.push({
+			variant: sample.failingTests ? 'exception' : 'output',
+			label: 'Test results',
+			text: trim(sample.output ?? ''),
+		});
+		return blocks;
+	}
 	if (sample.output !== undefined && (sample.expect === 'run' || trim(sample.output))) {
 		blocks.push({ variant: 'output', label: 'Output', text: trim(sample.output) });
 	}
@@ -147,7 +159,14 @@ export function outputBlocks(sample: Sample): OutputBlock[] {
 /** The highlighting language for a file: its extension decides (data files are not code). */
 export function codeLangFor(lang: Lang, file?: string): string {
 	const ext = file?.split('.').pop()?.toLowerCase();
-	const byExt: Record<string, string> = { csv: 'csv', txt: 'text', json: 'json', cs: 'csharp', py: 'python' };
+	const byExt: Record<string, string> = {
+		csv: 'csv',
+		txt: 'text',
+		json: 'json',
+		csproj: 'xml',
+		cs: 'csharp',
+		py: 'python',
+	};
 	return (ext && byExt[ext]) || LANGS[lang].codeLang;
 }
 

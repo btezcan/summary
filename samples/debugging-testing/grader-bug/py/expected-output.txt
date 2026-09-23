@@ -1,0 +1,12 @@
+.F....                                 [100%]
+================== FAILURES ==================
+__________ test_letter_grade[90-AA] __________
+test_grader.py:15: in test_letter_grade
+    assert letter_grade(score) == expected
+E   AssertionError: assert 'DD' == 'AA'
+E     
+E     - AA
+E     + DD
+========== short test summary info ===========
+FAILED test_grader.py::test_letter_grade[90-AA]
+1 failed, 5 passed

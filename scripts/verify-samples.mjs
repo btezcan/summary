@@ -48,6 +48,7 @@ const OPTION_KEYS = {
 	normalize: 'object', // [{ "pattern": "...", "replace": "..." }] for variable output
 	wide: 'boolean', // lines may exceed MAX_LINE; <Pair> shows the sample stacked
 	sandbox: 'boolean', // run in a fresh temporary copy of the folder (samples that write files)
+	failingTests: 'boolean', // expect "test": some tests are supposed to fail (the report is the lesson)
 	timeoutMs: 'number',
 };
 
@@ -159,6 +160,9 @@ async function verifySample(sample) {
 // --- C# -----------------------------------------------------------------------
 
 async function verifyCSharp({ sample, opts, dir, work, result, fail }) {
+	// Invariant globalization applies to running the program only: during a build it
+	// makes the SDK reject package resource cultures (NETSDK1188) and "en" (CS2038).
+	const buildEnv = { ...baseEnv };
 	const env = { ...baseEnv };
 	if (!opts.culture) env.DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = '1';
 	const timeout = opts.timeoutMs ?? 60_000;
@@ -175,7 +179,7 @@ async function verifyCSharp({ sample, opts, dir, work, result, fail }) {
 		'-clp:NoSummary',
 	];
 	if (opts.langVersion) buildArgs.push(`-p:LangVersion=${opts.langVersion}`);
-	const build = await run('dotnet', buildArgs, { cwd: work, env, timeout: timeout * 3 });
+	const build = await run('dotnet', buildArgs, { cwd: work, env: buildEnv, timeout: timeout * 3 });
 	const diagnostics = parseCSharpDiagnostics(build.stdout + '\n' + build.stderr, work);
 	const errors = diagnostics.filter((d) => d.includes(': error '));
 	const warnings = diagnostics.filter((d) => d.includes(': warning '));
@@ -199,7 +203,14 @@ async function verifyCSharp({ sample, opts, dir, work, result, fail }) {
 	// 2. Run
 	if (opts.expect === 'test') {
 		const test = await run('dotnet', ['test', '--no-build', '-nologo'], { cwd: work, env, timeout: timeout * 3 });
-		if (test.code !== 0) fail('Tests failed:\n' + indent(test.stdout + test.stderr));
+		const reportText = dotnetTestReport(normalizePaths(toLf(test.stdout), work));
+		if (!reportText) return fail('No test summary found:\n' + indent(test.stdout + test.stderr));
+		if ((test.code !== 0) !== Boolean(opts.failingTests)) {
+			return fail(
+				(opts.failingTests ? 'Expected failing tests, but all passed' : 'Tests failed') + ':\n' + indent(reportText),
+			);
+		}
+		compareFile(result, fail, dir, 'expected-output.txt', reportText);
 		return;
 	}
 
@@ -254,13 +265,31 @@ async function verifyPython({ opts, dir, work, result, fail }) {
 		compareFile(result, fail, dir, 'expected-warnings.txt', compileWarnings.length ? lines(compileWarnings) : null);
 		return;
 	}
-	if (opts.expect === 'test') return fail('Python test samples are not supported yet (pytest is added with chapter 17).');
 
 	// 1b. Type check with mypy. Errors are allowed only when stored in expected-typecheck.txt,
 	// which the page shows as "Type checker (mypy)" — usually because the error is the lesson.
 	const typecheck = await runMypy(work, opts, env, timeout);
 	if (typecheck.failed) return fail(typecheck.failed);
 	compareFile(result, fail, dir, 'expected-typecheck.txt', typecheck.errors.length ? lines(typecheck.errors) : null);
+
+	if (opts.expect === 'test') {
+		// pytest is installed for the target version only; one run is enough.
+		const test = await run(
+			tools.python.exe,
+			['-m', 'pytest', '-q', '-p', 'no:cacheprovider', '--tb=short'],
+			{ cwd: work, env: { ...env, COLUMNS: '46' }, timeout: timeout * 3 }, // fits a <Pair> column
+		);
+		const reportText = normalizePaths(toLf(test.stdout), work)
+			.replace(/ in \d+(\.\d+)?s( \(\d+:\d+:\d+\))?/g, '')
+			.replace(/=+ ?(no tests ran|\d+ (passed|failed)[^=]*) ?=+/g, '$1')
+			.replace(/^\n+/, '');
+		if (test.code === 5 && !opts.failingTests) return fail('pytest collected no tests:\n' + indent(reportText));
+		if ((test.code !== 0) !== Boolean(opts.failingTests)) {
+			return fail((opts.failingTests ? 'Expected failing tests, but all passed' : 'Tests failed') + ':\n' + indent(reportText));
+		}
+		compareFile(result, fail, dir, 'expected-output.txt', reportText);
+		return;
+	}
 
 	// 2. Run on the target version with two hash seeds, then on the oldest taught version.
 	// SyntaxWarnings were already collected in step 1; don't print them twice.
@@ -422,7 +451,7 @@ function findSamples(dir) {
 			found.push({ id: rel(dir, d), dir: d, lang: 'cs', kind: csproj ? 'project' : 'file' });
 			return;
 		}
-		if (names.includes('main.py')) {
+		if (names.includes('main.py') || names.some((n) => /^test_.*\.py$/.test(n))) {
 			found.push({ id: rel(dir, d), dir: d, lang: 'py', kind: 'file' });
 			return;
 		}
@@ -500,6 +529,29 @@ function dotnetExceptionHeader(stderr) {
 		out.push(l);
 	}
 	return out.join('\n').trimEnd();
+}
+
+/** The stable part of `dotnet test` output: each failure (name, message, expected/actual)
+ *  and the summary line — without durations, stack traces or paths. */
+function dotnetTestReport(stdout) {
+	const lines = stdout.split('\n');
+	const out = [];
+	let inFailure = false;
+	for (const line of lines) {
+		if (/^\s{2}Failed \S/.test(line)) {
+			inFailure = true;
+			out.push(line.replace(/ \[[^\]]*\]$/, '').trim());
+			continue;
+		}
+		if (inFailure && /^\s{2}Stack Trace:/.test(line)) {
+			inFailure = false;
+			continue;
+		}
+		if (inFailure && !/^\s{2}Error Message:/.test(line)) out.push(line.replace(/^ {3}/, '  '));
+		const summary = line.match(/^(Passed!|Failed!)\s+- (Failed:\s+\d+, Passed:\s+\d+, Skipped:\s+\d+, Total:\s+\d+)/);
+		if (summary) out.push(`${summary[1]} ${summary[2].replace(/\s+/g, ' ')}`);
+	}
+	return out.length ? out.join('\n').replace(/\n{2,}/g, '\n') + '\n' : '';
 }
 
 /** The Python traceback, from "Traceback (most recent call last):" to the end. */

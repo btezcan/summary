@@ -1,0 +1,7 @@
+Failed GraderTests.Ninety_IsAA
+  Assert.Equal() Failure: Strings differ
+          ↓ (pos 0)
+Expected: "AA"
+Actual:   "DD"
+          ↑ (pos 0)
+Failed! Failed: 1, Passed: 0, Skipped: 0, Total: 1

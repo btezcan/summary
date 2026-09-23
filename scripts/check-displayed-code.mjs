@@ -57,15 +57,20 @@ for (const ch of chapters) {
 	const missing = [];
 	let ok = 0;
 	for (const ex of fs.readdirSync(path.join(ROOT, 'samples', ch))) {
-		for (const [lang, file] of Object.entries(MAIN)) {
-			const p = path.join(ROOT, 'samples', ch, ex, lang, file);
-			if (!fs.existsSync(p)) continue;
+		for (const lang of Object.keys(MAIN)) {
+			const langDir = path.join(ROOT, 'samples', ch, ex, lang);
+			if (!fs.existsSync(langDir)) continue;
+			// Every code file of the sample, not only Program.cs / main.py.
+			const ext = lang === 'cs' ? '.cs' : '.py';
+			for (const file of fs.readdirSync(langDir).filter((n) => n.endsWith(ext))) {
+			const p = path.join(langDir, file);
 			const text = fs.readFileSync(p, 'utf8');
 			const full = text.split('\n').filter((l) => !MARKER.test(l)).join('\n').trim();
 			const parts = regions(text);
 			// Shown if the whole file appears, or (for a file with regions) every region does.
 			if (shown.has(full) || (parts.length > 0 && parts.every((r) => shown.has(r)))) ok++;
 			else missing.push(`samples/${ch}/${ex}/${lang}/${file}`);
+			}
 		}
 	}
 	console.log(`${missing.length ? '✗' : '✓'} ${ch}: ${ok} sample files shown verbatim`);

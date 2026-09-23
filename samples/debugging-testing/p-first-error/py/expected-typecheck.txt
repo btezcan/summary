@@ -1,0 +1,1 @@
+main.py:2: error: Name "undefined_name" is not defined  [name-defined]

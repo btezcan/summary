@@ -90,8 +90,10 @@ reviews content; students only read.
 - Every Python sample is type-checked with the pinned **mypy**
   (`samples/requirements.txt`). Code must type-check unless the mypy report is the
   point of the example; then it is stored and shown as "Type checker (mypy)".
-- **pytest** is approved for the testing chapter; add it to
-  `samples/requirements.txt` (pinned) when chapter 17 is written.
+- Test samples use **pytest** (pinned in `samples/requirements.txt`) and **xUnit**
+  (the package versions of .NET's `dotnet new xunit` template). A test sample sets
+  `"expect": "test"`; the stored report (failures and summary, without timings)
+  is shown on the page as "Test results".
 
 ## Correctness is the top priority
 

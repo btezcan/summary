@@ -1,0 +1,10 @@
+F                                      [100%]
+================== FAILURES ==================
+_________________ test_total _________________
+test_prices.py:6: in test_total
+    assert total([0.1, 0.2]) == 0.3
+E   assert 0.30000000000000004 == 0.3
+E    +  where 0.30000000000000004 = total([0.1, 0.2])
+========== short test summary info ===========
+FAILED test_prices.py::test_total - assert ...
+1 failed

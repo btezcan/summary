@@ -15,15 +15,18 @@ interface Props {
 	right: string;
 	wrongRegion?: string;
 	rightRegion?: string;
+	/** File to show when it isn't Program.cs / main.py (e.g. a test file). */
+	wrongFile?: string;
+	rightFile?: string;
 	/** Short title, e.g. "Unassigned variable". */
 	title?: string;
 }
 
-const { lang, wrong, right, wrongRegion, rightRegion, title } = Astro.props;
+const { lang, wrong, right, wrongRegion, rightRegion, wrongFile, rightFile, title } = Astro.props;
 const langName = LANGS[lang].name;
 const sides = [
-	{ kind: 'wrong', label: 'Wrong', id: wrong, region: wrongRegion },
-	{ kind: 'right', label: 'Right', id: right, region: rightRegion },
+	{ kind: 'wrong', label: 'Wrong', id: wrong, region: wrongRegion, file: wrongFile },
+	{ kind: 'right', label: 'Right', id: right, region: rightRegion, file: rightFile },
 ];
 ---
 
@@ -42,7 +45,7 @@ const sides = [
 						</span>
 						{s.label}
 					</p>
-					<LangCode id={s.id} lang={lang} region={s.region} title={LANGS[lang].name} />
+					<LangCode id={s.id} lang={lang} region={s.region} file={s.file} title={s.file ?? LANGS[lang].name} />
 				</div>
 			))
 		}

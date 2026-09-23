@@ -26,6 +26,8 @@ interface Question {
 	explanation: string;
 	sample?: string;
 	lang?: Lang;
+	/** File to show when it isn't Program.cs / main.py. */
+	file?: string;
 	region?: string;
 }
 
@@ -63,9 +65,9 @@ const uid = 'q' + Math.random().toString(36).slice(2, 8);
 						</legend>
 						{q.sample && q.lang && (
 							<Code
-								code={getCode(q.sample, q.lang, undefined, q.region)}
+								code={getCode(q.sample, q.lang, q.file, q.region)}
 								lang={LANGS[q.lang].codeLang}
-								title={codeTitle(q.lang)}
+								title={codeTitle(q.lang, q.file)}
 							/>
 						)}
 						<div class="cs-quiz__options">
