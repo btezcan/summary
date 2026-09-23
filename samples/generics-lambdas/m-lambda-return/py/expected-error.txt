@@ -1,0 +1,4 @@
+  File "main.py", line 1
+    double = lambda x: return x * 2
+                       ^^^^^^
+SyntaxError: invalid syntax

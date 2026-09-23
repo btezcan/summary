@@ -1,0 +1,1 @@
+Program.cs(3,10): warning CS8321: The local function 'Max' is declared but never used

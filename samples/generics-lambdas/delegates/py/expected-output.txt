@@ -1,0 +1,4 @@
+25
+5
+Hello Deniz
+True

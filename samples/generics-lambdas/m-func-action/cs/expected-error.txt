@@ -1,0 +1,2 @@
+Program.cs(2,11): error CS0029: Cannot implicitly convert type 'void' to 'string'
+Program.cs(2,11): error CS1662: Cannot convert lambda expression to intended delegate type because some of the return types in the block are not implicitly convertible to the delegate return type

@@ -1,5 +1,261 @@
 ---
-title: "Generics and Lambdas"
+title: Generics and Lambdas
+description: Generic methods and classes, delegates and callables, lambdas, closures and events — in C# and Python side by side.
 ---
 
-This chapter is being written.
+import { Pair, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- **Generics** let one method or class work with many types while keeping type
+  safety: `List<int>`, `Max<T>`. In C# they're enforced by the compiler and exist
+  at runtime. Python's `list[int]` and `def f[T](...)` are **for the type checker
+  only**; Python itself ignores them.
+- A **delegate** (C#) is a variable that holds a method: `Func<>`, `Action<>`.
+  In Python every function is already an object; its type is `Callable[...]`.
+- **Lambdas**: `x => x * 2` (C#) and `lambda x: x * 2` (Python). A Python lambda
+  is a single expression; anything longer is a nested `def`.
+- A lambda can **capture** variables from where it was created (a **closure**).
+  Loops capture carefully: a C# `for` loop and a Python comprehension share one
+  variable across all iterations.
+
+## Concept
+
+### Why generics
+
+A generic type has a **type parameter**: `List<T>` works for any `T`, and
+`List<int>` is a list that holds only `int`s. The compiler rejects anything else,
+and no boxing is needed.
+
+Python lists always hold any kind of object. The hint `list[int]` tells a type
+checker what you intend; the interpreter doesn't check it.
+
+<Pair id="generics-lambdas/type-safety">
+  C# refuses to compile `Add("three")` on a `List<int>`. Python runs the program
+  and ends up with a mixed list; only mypy complains. That's the general pattern:
+  C# generics are enforced, Python generics are documentation that tools check.
+</Pair>
+
+### Generic methods
+
+A generic method declares its type parameter after the name. A **constraint**
+says what the type must support: here, comparing with itself.
+
+<Pair id="generics-lambdas/generic-method">
+  `where T : IComparable<T>` (C#) and `[T: (int, float, str)]` (Python 3.12)
+  both restrict which types may be used. The Python version lists allowed types;
+  a `Protocol` bound would allow any comparable type. Before 3.12, Python wrote
+  `T = TypeVar("T", int, float, str)` — you'll see that in older code.
+</Pair>
+
+### Generic classes
+
+<Pair id="generics-lambdas/generic-class">
+  C# generics are **reified**: `typeof(T)` still knows the type at runtime
+  (`Int32`). Python erases the type parameter; the object just holds whatever was
+  passed in, and mypy infers `Box[int]` from the argument.
+</Pair>
+
+### Functions as values
+
+A C# **delegate** type describes a method signature. The built-in ones cover
+almost everything: `Func<int, int>` takes an `int` and returns an `int`,
+`Action<string>` takes a `string` and returns nothing, `Predicate<int>` returns a
+`bool`. In Python, functions are ordinary objects; `Callable[[int], int]`
+describes one in a type hint.
+
+<Pair id="generics-lambdas/delegates">
+  The C# side uses lambdas for all four delegates. The Python side uses lambdas
+  only where the hint makes the comparison clear — PEP 8 recommends a `def`
+  instead of assigning a lambda to a name, as `greet` and `is_even` show.
+</Pair>
+
+<Compare
+  caption="Delegate types and their Python hints"
+  headers={['Shape', 'C#', 'Python hint']}
+  rows={[
+    ['Takes `int`, returns `int`', '`Func<int, int>`', '`Callable[[int], int]`'],
+    ['Takes two values, returns one', '`Func<int, int, int>`', '`Callable[[int, int], int]`'],
+    ['Takes `string`, returns nothing', '`Action<string>`', '`Callable[[str], None]`'],
+    ['Takes nothing, returns nothing', '`Action`', '`Callable[[], None]`'],
+    ['Takes `int`, returns `bool`', '`Predicate<int>`, `Func<int, bool>`', '`Callable[[int], bool]`'],
+  ]}
+/>
+
+### Passing functions to functions
+
+A function that takes another function as a parameter is a **higher-order
+function**. It lets the caller decide part of the behavior.
+
+<Pair id="generics-lambdas/higher-order">
+  `Keep` / `keep` loop over the items and ask the rule about each one. This is
+  exactly what LINQ's `Where` and Python's comprehensions do — the next chapter.
+</Pair>
+
+### Lambdas with more than one line
+
+<Pair id="generics-lambdas/lambda-body">
+  C# has **statement lambdas** with a block body. A Python `lambda` can hold only
+  one expression, so logic with statements becomes a (possibly nested) `def`.
+</Pair>
+
+### Closures
+
+A lambda or nested function can use variables from the surrounding code, and it
+keeps them alive after that code has finished. That combination of function and
+captured variables is a **closure**.
+
+<Pair id="generics-lambdas/closures">
+  Each call to `MakeCounter` / `make_counter` creates a new `count`, and each
+  counter keeps its own. Python needs `nonlocal` to **assign** to the captured
+  variable; reading it works without.
+</Pair>
+
+### Events
+
+C# has **events**: a class exposes a delegate that other code can subscribe to
+with `+=`. Python has no built-in event keyword; a list of callback functions
+does the same job.
+
+<Pair id="generics-lambdas/events">
+  Both run every subscribed handler in order. C#'s `?.Invoke()` does nothing when
+  there are no subscribers. (The Python version is shown separately because its
+  type hints make the lines longer.)
+</Pair>
+
+## Examples
+
+### Sorting with a key
+
+<Pair id="generics-lambdas/sort-key">
+  Python sorts by a **key** function (`key=len`); C#'s `List.Sort` takes a
+  **comparison**, while LINQ's `OrderBy` takes a key like Python.
+</Pair>
+
+### map and filter
+
+<Pair id="generics-lambdas/map-filter">
+  `Where` / `Select` (C#) correspond to `filter` / `map` (Python). In Python, the
+  comprehension on the last line is usually preferred: it reads left to right.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Mixing types in a generic call" wrong="generics-lambdas/m-mixed-types" right="generics-lambdas/m-mixed-types-fixed">
+  `Max(3, "x")` has no single `T` that fits both arguments, so the compiler
+  can't infer one (CS0411). Convert the values to one type first.
+</Mistake>
+
+<Mistake lang="cs" title="Func where Action is needed" wrong="generics-lambdas/m-func-action" right="generics-lambdas/m-func-action-fixed">
+  `Func<string>` promises to return a `string`, but `Console.WriteLine` returns
+  nothing. Use `Action` for delegates that return nothing.
+</Mistake>
+
+<Mistake lang="py" title="return inside a lambda" wrong="generics-lambdas/m-lambda-return" right="generics-lambdas/m-lambda-return-fixed">
+  A lambda's body is an expression, and its value is returned automatically.
+  `return` is a statement, so it's a syntax error. Write `lambda x: x * 2`, or a
+  `def`.
+</Mistake>
+
+<Mistake lang="py" title="Mixing types in a generic call" wrong="generics-lambdas/m-mixed-types" right="generics-lambdas/m-mixed-types-fixed">
+  The type parameter doesn't stop the call at runtime: Python runs `larger` and
+  fails inside it, at `>=`. mypy rejects the call itself — the same place where
+  C# fails to compile.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="generics-lambdas/p-late-binding">
+  A closure captures the **variable**, not its current value. A C# `for` loop has
+  one `i` for the whole loop, so all three lambdas see its final value, `3`; a
+  `foreach` loop gets a fresh variable per iteration. Python's comprehension also
+  has one `i` (ending at `2`). The default argument `i=i` copies the value at
+  creation time, which is the standard Python fix.
+</Predict>
+
+<Predict id="generics-lambdas/p-map-once" lang="py">
+  `map` returns a lazy **iterator** that can be consumed once. The first `list()`
+  uses it up, so the second gets nothing. More on this in the next chapter.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'What happens when you run Python code that appends a string to a variable hinted as `list[int]`?',
+    options: [
+      'A `TypeError` at runtime',
+      'It runs; only a type checker reports the problem',
+      'A `SyntaxError`',
+      'The string is converted to an int',
+    ],
+    answer: 1,
+    explanation: 'Type hints, including generic ones, are not checked at runtime. C# generics are enforced by the compiler.',
+  },
+  {
+    question: 'Which C# delegate type fits a method that takes a `string` and returns nothing?',
+    options: ['`Func<string>`', '`Action<string>`', '`Predicate<string>`', '`Func<string, void>`'],
+    answer: 1,
+    explanation: '`Action<T>` returns nothing. `Func<string>` takes nothing and returns a `string`; `void` can\'t be a type argument.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'generics-lambdas/q-lambda',
+    lang: 'py',
+    options: ['`7`', '`12`', '`34`', 'A `TypeError`'],
+    answer: 1,
+    explanation: 'The dictionary maps names to functions; `ops["mul"]` is the multiplying lambda, called with 3 and 4.',
+  },
+  {
+    question: 'Why does a Python closure need `nonlocal` to change a captured variable?',
+    options: [
+      'Without it, assignment creates a new local variable in the inner function',
+      'Captured variables are read-only in Python',
+      'It makes the variable global',
+      'It is only needed for lambdas',
+    ],
+    answer: 0,
+    explanation: 'Assigning to a name inside a function makes it local by default. `nonlocal` says "the variable from the enclosing function". Reading needs no declaration.',
+  },
+  {
+    question: 'Which of these is a valid Python lambda?',
+    options: ['`lambda x: return x + 1`', '`lambda x: x + 1`', '`lambda (x): { x + 1 }`', '`x => x + 1`'],
+    answer: 1,
+    explanation: 'A lambda body is one expression, returned automatically. `x => x + 1` is the C# syntax.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Generic list', '`List<int>`', '`list[int]` (hint only)'],
+    ['Generic method', '`static T Max<T>(T a, T b)`', '`def larger[T](a: T, b: T) -> T:`'],
+    ['Constraint', '`where T : IComparable<T>`', '`[T: (int, str)]`, or a bound `[T: Proto]`'],
+    ['Generic class', '`class Box<T>`', '`class Box[T]:`'],
+    ['Function type', '`Func<int, int>`, `Action<string>`', '`Callable[[int], int]`'],
+    ['Lambda', '`x => x * 2`', '`lambda x: x * 2`'],
+    ['Two parameters', '`(a, b) => a + b`', '`lambda a, b: a + b`'],
+    ['Multi-line', '`x => { …; return y; }`', 'nested `def`'],
+    ['Change captured variable', 'just assign it', '`nonlocal count`'],
+    ['Event', '`public event Action? Clicked;` / `+=`', 'list of callbacks'],
+    ['Sort by key', '`list.OrderBy(x => x.Length)`', '`sorted(xs, key=len)`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Explain what a closure is using a counter example in C# and Python, then give
+  me a loop-and-lambda puzzle to predict before you show the answer."
+- "Here is a generic C# method with a `where` constraint. Show the Python 3.12
+  equivalent with type hints, and explain what Python checks at runtime and what
+  only mypy checks."
+
+<Note type="warning" title="Verify it yourself">
+  AI translations of generic C# code into Python often add type hints and then
+  assume they're enforced. Test the Python version with a wrong type, and run
+  mypy: the interpreter alone won't catch it.
+</Note>
