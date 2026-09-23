@@ -1,0 +1,3 @@
+{"Code":"CS101","Title":"Giri\u015F","Credits":4}
+True
+{"Code":"CS101","Title":"Giriş","Credits":4}

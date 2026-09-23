@@ -4,7 +4,7 @@
 // Compare and Predict.
 import { Code } from '@astrojs/starlight/components';
 import Outputs from './Outputs.astro';
-import { codeTitle, getCode, getSample, LANGS, type Lang } from './lib/samples';
+import { codeLangFor, codeTitle, getCode, getSample, type Lang } from './lib/samples';
 
 interface Props {
 	id: string;
@@ -24,7 +24,7 @@ const code = getCode(id, lang, file, region);
 
 <Code
 	code={code}
-	lang={LANGS[lang].codeLang}
+	lang={codeLangFor(lang, file)}
 	title={title ?? codeTitle(lang, file)}
 	meta={mark ? `mark=${mark}` : undefined}
 />

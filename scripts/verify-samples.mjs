@@ -47,6 +47,7 @@ const OPTION_KEYS = {
 	nondeterministic: 'boolean', // Python: output may differ between hash seeds (use with normalize)
 	normalize: 'object', // [{ "pattern": "...", "replace": "..." }] for variable output
 	wide: 'boolean', // lines may exceed MAX_LINE; <Pair> shows the sample stacked
+	sandbox: 'boolean', // run in a fresh temporary copy of the folder (samples that write files)
 	timeoutMs: 'number',
 };
 
@@ -137,14 +138,27 @@ async function verifySample(sample) {
 	}
 	if (!opts.wide) checkLineLength(sample, fail);
 
-	const ctx = { sample, opts, dir: sample.dir, result, fail };
-	await (sample.lang === 'cs' ? verifyCSharp(ctx) : verifyPython(ctx));
+	// dir: where the expected files live. work: where the sample is built and run.
+	let work = sample.dir;
+	if (opts.sandbox) {
+		work = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-sample-'));
+		fs.cpSync(sample.dir, work, {
+			recursive: true,
+			filter: (src) => !/[\\/](bin|obj|__pycache__)$|expected-[a-z]+\.txt$/.test(src),
+		});
+	}
+	const ctx = { sample, opts, dir: sample.dir, work, result, fail };
+	try {
+		await (sample.lang === 'cs' ? verifyCSharp(ctx) : verifyPython(ctx));
+	} finally {
+		if (work !== sample.dir) fs.rmSync(work, { recursive: true, force: true });
+	}
 	return report(result);
 }
 
 // --- C# -----------------------------------------------------------------------
 
-async function verifyCSharp({ sample, opts, dir, result, fail }) {
+async function verifyCSharp({ sample, opts, dir, work, result, fail }) {
 	const env = { ...baseEnv };
 	if (!opts.culture) env.DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = '1';
 	const timeout = opts.timeoutMs ?? 60_000;
@@ -161,8 +175,8 @@ async function verifyCSharp({ sample, opts, dir, result, fail }) {
 		'-clp:NoSummary',
 	];
 	if (opts.langVersion) buildArgs.push(`-p:LangVersion=${opts.langVersion}`);
-	const build = await run('dotnet', buildArgs, { cwd: dir, env, timeout: timeout * 3 });
-	const diagnostics = parseCSharpDiagnostics(build.stdout + '\n' + build.stderr, dir);
+	const build = await run('dotnet', buildArgs, { cwd: work, env, timeout: timeout * 3 });
+	const diagnostics = parseCSharpDiagnostics(build.stdout + '\n' + build.stderr, work);
 	const errors = diagnostics.filter((d) => d.includes(': error '));
 	const warnings = diagnostics.filter((d) => d.includes(': warning '));
 
@@ -184,17 +198,17 @@ async function verifyCSharp({ sample, opts, dir, result, fail }) {
 
 	// 2. Run
 	if (opts.expect === 'test') {
-		const test = await run('dotnet', ['test', '--no-build', '-nologo'], { cwd: dir, env, timeout: timeout * 3 });
+		const test = await run('dotnet', ['test', '--no-build', '-nologo'], { cwd: work, env, timeout: timeout * 3 });
 		if (test.code !== 0) fail('Tests failed:\n' + indent(test.stdout + test.stderr));
 		return;
 	}
 
 	const runArgs = sample.kind === 'file' ? ['run', '--no-build', '--file', 'Program.cs'] : ['run', '--no-build'];
-	const exec = await run('dotnet', runArgs, { cwd: dir, env, timeout, input: readInput(dir) });
+	const exec = await run('dotnet', runArgs, { cwd: work, env, timeout, input: readInput(dir) });
 	if (exec.timedOut) return fail(`Timed out (${timeout} ms). Is the program waiting for input? Add input.txt.`);
 
-	const stdout = applyNormalize(toLf(exec.stdout), opts.normalize);
-	const stderr = normalizePaths(toLf(exec.stderr), dir);
+	const stdout = applyNormalize(normalizePaths(toLf(exec.stdout), work), opts.normalize);
+	const stderr = normalizePaths(toLf(exec.stderr), work);
 
 	if (opts.expect === 'exception') {
 		const header = dotnetExceptionHeader(stderr);
@@ -217,15 +231,15 @@ async function verifyCSharp({ sample, opts, dir, result, fail }) {
 // --- Python -------------------------------------------------------------------
 
 
-async function verifyPython({ opts, dir, result, fail }) {
+async function verifyPython({ opts, dir, work, result, fail }) {
 	const env = { ...baseEnv };
 	// Without an explicit locale, only samples that call locale.setlocale() see one.
 	if (!opts.culture) Object.assign(env, { LC_ALL: 'C.UTF-8', LANG: 'C.UTF-8' });
 	const timeout = opts.timeoutMs ?? 30_000;
 
 	// 1. Compile (the Python equivalent of the C# build step)
-	const compile = await run(tools.python.exe, ['-c', PY_COMPILE_CHECK], { cwd: dir, env, timeout });
-	const compileOut = normalizePaths(toLf(compile.stderr), dir).trimEnd();
+	const compile = await run(tools.python.exe, ['-c', PY_COMPILE_CHECK], { cwd: work, env, timeout });
+	const compileOut = normalizePaths(toLf(compile.stderr), work).trimEnd();
 
 	if (opts.expect === 'compile-error') {
 		if (compile.code === 0) fail('Expected a SyntaxError, but the code compiled.');
@@ -244,16 +258,27 @@ async function verifyPython({ opts, dir, result, fail }) {
 
 	// 1b. Type check with mypy. Errors are allowed only when stored in expected-typecheck.txt,
 	// which the page shows as "Type checker (mypy)" — usually because the error is the lesson.
-	const typecheck = await runMypy(dir, opts, env, timeout);
+	const typecheck = await runMypy(work, opts, env, timeout);
 	if (typecheck.failed) return fail(typecheck.failed);
 	compareFile(result, fail, dir, 'expected-typecheck.txt', typecheck.errors.length ? lines(typecheck.errors) : null);
 
 	// 2. Run on the target version with two hash seeds, then on the oldest taught version.
 	// SyntaxWarnings were already collected in step 1; don't print them twice.
 	const input = readInput(dir);
+	// A sandboxed sample gets a fresh copy for every run, so files it writes can't
+	// leak from one run (seed, version) into the next.
+	const freshWork = () => {
+		if (!opts.sandbox) return work;
+		fs.rmSync(work, { recursive: true, force: true });
+		fs.cpSync(dir, work, {
+			recursive: true,
+			filter: (src) => !/[\\/](bin|obj|__pycache__)$|expected-[a-z]+\.txt$/.test(src),
+		});
+		return work;
+	};
 	const runPy = (exe, seed) =>
 		run(exe, ['-W', 'ignore::SyntaxWarning', 'main.py'], {
-			cwd: dir,
+			cwd: freshWork(),
 			env: { ...env, PYTHONHASHSEED: String(seed) },
 			timeout,
 			input,
@@ -261,8 +286,8 @@ async function verifyPython({ opts, dir, result, fail }) {
 
 	const main = await runPy(tools.python.exe, 0);
 	if (main.timedOut) return fail(`Timed out (${timeout} ms). Is the program waiting for input? Add input.txt.`);
-	const stdout = applyNormalize(normalizePaths(toLf(main.stdout), dir), opts.normalize);
-	const stderr = normalizePaths(toLf(main.stderr), dir);
+	const stdout = applyNormalize(normalizePaths(toLf(main.stdout), work), opts.normalize);
+	const stderr = normalizePaths(toLf(main.stderr), work);
 
 	if (opts.expect === 'exception') {
 		const tb = pythonTraceback(stderr);
@@ -289,7 +314,7 @@ async function verifyPython({ opts, dir, result, fail }) {
 	// 3. Same output with a different hash seed: catches set/dict-of-set ordering that a
 	// student would not reproduce.
 	const reseeded = await runPy(tools.python.exe, 1);
-	const reseededOut = applyNormalize(normalizePaths(toLf(reseeded.stdout), dir), opts.normalize);
+	const reseededOut = applyNormalize(normalizePaths(toLf(reseeded.stdout), work), opts.normalize);
 	if (!opts.nondeterministic && reseededOut !== stdout) {
 		fail('Output changes with PYTHONHASHSEED (set or hash order?). Sort the output, or set "nondeterministic" + "normalize":\n' + diff(stdout, reseededOut));
 	}
@@ -297,8 +322,8 @@ async function verifyPython({ opts, dir, result, fail }) {
 	// 4. The oldest taught version must run the sample the same way, unless it declares minPython.
 	if (opts.minPython && compareVersions(opts.minPython, PY_MIN) > 0) return;
 	const old = await runPy(tools.pythonMin.exe, 0);
-	const oldOut = applyNormalize(normalizePaths(toLf(old.stdout), dir), opts.normalize);
-	const oldErr = normalizePaths(toLf(old.stderr), dir);
+	const oldOut = applyNormalize(normalizePaths(toLf(old.stdout), work), opts.normalize);
+	const oldErr = normalizePaths(toLf(old.stderr), work);
 	const oldFailed = opts.expect === 'exception' ? !pythonTraceback(oldErr) : old.code !== 0;
 	if (oldFailed) {
 		fail(
@@ -487,7 +512,11 @@ function pythonTraceback(stderr) {
 function normalizePaths(text, dir) {
 	const variants = new Set([dir, fs.realpathSync(dir)]);
 	for (const v of [...variants]) if (v.startsWith('/private/')) variants.add(v.slice('/private'.length));
-	for (const v of variants) text = text.split(v + path.sep).join('').split(v + '/').join('');
+	// Longest first: on macOS /private/var/… contains /var/…, and replacing the
+	// shorter one first would leave "/private" behind.
+	for (const v of [...variants].sort((x, y) => y.length - x.length)) {
+		text = text.split(v + path.sep).join('').split(v + '/').join('');
+	}
 	return text;
 }
 

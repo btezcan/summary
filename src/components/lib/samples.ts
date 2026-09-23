@@ -5,7 +5,7 @@
 // Layout: samples/<chapter>/<example>/cs/ and samples/<chapter>/<example>/py/
 
 const files = import.meta.glob<string>(
-	['/samples/**/*.{cs,py,txt,json}', '!/samples/**/{bin,obj,__pycache__}/**'],
+	['/samples/**/*.{cs,py,txt,json,csv}', '!/samples/**/{bin,obj,__pycache__}/**'],
 	{ query: '?raw', import: 'default', eager: true },
 );
 
@@ -142,6 +142,13 @@ export function outputBlocks(sample: Sample): OutputBlock[] {
 		blocks.push({ variant: 'exception', label, text: trim(sample.error!) });
 	}
 	return blocks;
+}
+
+/** The highlighting language for a file: its extension decides (data files are not code). */
+export function codeLangFor(lang: Lang, file?: string): string {
+	const ext = file?.split('.').pop()?.toLowerCase();
+	const byExt: Record<string, string> = { csv: 'csv', txt: 'text', json: 'json', cs: 'csharp', py: 'python' };
+	return (ext && byExt[ext]) || LANGS[lang].codeLang;
 }
 
 /** Code frame title, e.g. "C# · Program.cs" or "Python · main.py". */

@@ -1,5 +1,262 @@
 ---
-title: "Files and Cleanup"
+title: Files and Cleanup
+description: Reading and writing text files, paths, encodings, streams, CSV and JSON, and releasing resources with using and with — in C# and Python side by side.
 ---
 
-This chapter is being written.
+import { Pair, Sample, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- Small files: read or write the whole file in one call —
+  `File.ReadAllText` / `WriteAllLines` (C#), `Path.read_text` / `write_text`
+  (Python's `pathlib`).
+- Build paths with `Path.Combine` / the `/` operator, never by gluing strings.
+  **Relative** paths are resolved from the program's **working directory**.
+- Always state the **encoding** in Python: `encoding="utf-8"`. Before Python 3.15,
+  `open()` uses the computer's locale — cp1254 on a Turkish Windows PC. C#
+  defaults to UTF-8.
+- Anything that holds an open file must be **closed**: `using` (C#) and `with`
+  (Python) close it automatically, even when an exception happens.
+- JSON: `System.Text.Json` and the `json` module. Both escape `ş`, `ğ`, `ı` by
+  default; each has an option to keep them readable.
+
+## Concept
+
+### Reading and writing whole files
+
+For files that fit in memory — most course work — the one-call helpers are the
+simplest and safest: they open, read or write, and close the file for you.
+
+<Pair id="files/read-write">
+  `File.WriteAllLines` takes a collection of lines; Python writes one string with
+  `\n` separators. `Directory.CreateDirectory` and `mkdir(exist_ok=True)` do
+  nothing if the folder already exists.
+</Pair>
+
+### Paths
+
+<Pair id="files/paths">
+  `Path.Combine` and pathlib's `/` insert the right separator for the operating
+  system: these outputs show `/` because the samples ran on Linux/macOS; on
+  Windows you'd see `\`. pathlib gives you the parts as attributes: `name`,
+  `stem`, `suffix`, `parent`.
+</Pair>
+
+A **relative** path such as `data/grades.txt` is looked up from the
+**working directory**: the folder the program was started from, which is not
+necessarily the folder of your source file. `dotnet run` starts in the project
+folder; an IDE may start in `bin/Debug/net10.0/`. `python main.py` uses the
+terminal's current folder.
+
+### Encodings
+
+A file stores bytes; the **encoding** says how bytes become characters. UTF-8 can
+store every character, including `ş`, `ğ`, `İ` and `ı`. Reading a file with the
+wrong encoding produces garbage (or an error).
+
+- C#'s `File` methods and `StreamReader`/`StreamWriter` default to **UTF-8**.
+- Python's `open()`, `read_text()` and `write_text()` use the computer's
+  **locale** encoding unless you pass `encoding=`. On a Turkish Windows PC that
+  was cp1254. Python 3.15 changes the default to UTF-8 (this site checked
+  Python 3.15 release candidate 2), but code for older versions — and code you
+  read — should pass `encoding="utf-8"` explicitly.
+
+### Streams and cleanup: using and with
+
+For big files, read **line by line** instead of loading everything. A
+`StreamReader` or an open Python file object reads a little at a time. Such
+objects hold an **operating-system resource** — an open file handle — that must
+be released: `using` (C#) and `with` (Python) guarantee that.
+
+<Pair id="files/streams">
+  At the end of the `using` / `with` block the file is **flushed** (buffered
+  text is written) and **closed**. `using var reader = …` (a using
+  *declaration*) closes at the end of the enclosing scope. Iterating over a
+  Python file object yields one line at a time, including its `\n`.
+</Pair>
+
+<Pair id="files/append">
+  `AppendAllText` and mode `"a"` add to the end instead of replacing the file.
+  Opening in mode `"w"` — or `WriteAllText` — empties the file first.
+</Pair>
+
+The mechanism isn't only for files. Any class can take part: C# classes implement
+`IDisposable`, Python classes implement `__enter__` and `__exit__` (a **context
+manager**).
+
+<Pair id="files/cleanup">
+  `closed` appears even when the block ends with an exception — before the
+  `catch` / `except` handler runs. That guarantee is the whole point. (Python's
+  `contextlib.contextmanager` decorator is a shorter way to write a context
+  manager.)
+</Pair>
+
+### Folders
+
+<Pair id="files/directories">
+  `GetFiles("notes", "*.txt")` and `glob("*.txt")` filter by pattern. Neither
+  promises an order, so both results are sorted before printing.
+</Pair>
+
+## Examples
+
+### A CSV report
+
+The input file, `grades.csv` (the same file in both folders):
+
+<Sample id="files/csv-report" lang="cs" file="grades.csv" title="grades.csv" output={false} />
+
+<Pair id="files/csv-report">
+  Parse numbers from data files with the **invariant culture** in C#, or
+  `85.5` would become `855` on a Turkish-locale computer (chapter 4). Python's
+  `Decimal("85.5")` never uses the locale. For real CSV — quoted fields,
+  commas inside values — use a library in C# and the `csv` module in Python.
+  Python's `csv` docs ask for `newline=""` when opening the file.
+</Pair>
+
+### JSON
+
+<Pair id="files/json">
+  Both escape non-ASCII characters by default (`\u015F` in C#, `\u015f` in
+  Python — the same character, `ş`). `UnsafeRelaxedJsonEscaping` and
+  `ensure_ascii=False` keep them readable. Note the property names: C# writes
+  `Code`, Python writes `code`, so the two programs' JSON isn't interchangeable
+  without renaming options.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Not disposing a StreamWriter" wrong="files/m-no-dispose" right="files/m-no-dispose-fixed">
+  The text sat in the writer's memory buffer and never reached the file. Without
+  `using`, the file also stays locked until the garbage collector happens to
+  clean up.
+</Mistake>
+
+<Mistake lang="cs" title="A relative path that doesn't exist" wrong="files/m-not-found" right="files/m-not-found-fixed">
+  The folder is missing in the working directory. Check with `File.Exists`, and
+  when a path "should" exist, print `Path.GetFullPath(path)` to see where the
+  program is actually looking. Python raises `FileNotFoundError`.
+</Mistake>
+
+<Mistake lang="py" title="Not closing a file" wrong="files/m-not-closed" right="files/m-not-closed-fixed">
+  Same bug as the C# one: the text is still buffered when the file is read back.
+  `with` closes the file at the end of the block.
+</Mistake>
+
+<Mistake lang="py" title="Reading UTF-8 text with the wrong encoding" wrong="files/m-encoding" right="files/m-encoding-fixed">
+  The file is UTF-8, but it was read as cp1254 — what `open()` did by default on
+  Turkish Windows before Python 3.15. Every Turkish letter turned into two wrong
+  characters. Always pass `encoding="utf-8"`.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="files/p-overwrite">
+  Each write replaces the whole file, so `one` is gone; the append adds `three`
+  after `two`.
+</Predict>
+
+<Predict id="files/p-lines">
+  `ReadAllLines` strips the line breaks. Python's `readlines()` keeps them, so
+  `lines[0]` is `"a\n"` and the bracket moves to the next line. Use
+  `line.rstrip("\n")` or `read_text().splitlines()`.
+</Predict>
+
+<Predict id="files/p-combine-absolute">
+  If a later part is an **absolute** path, both `Path.Combine` and `/` discard
+  everything before it. Be careful when a path part comes from user input.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'What does this Python program print?',
+    sample: 'files/q-suffix',
+    lang: 'py',
+    options: ['`.2026.csv grades`', '`.csv grades.2026`', '`csv grades`', '`.csv grades`'],
+    answer: 1,
+    explanation: '`suffix` is the last extension and `stem` is the name without it. C#\'s `Path.GetExtension` and `GetFileNameWithoutExtension` behave the same way.',
+  },
+  {
+    question: 'Why should Python code pass `encoding="utf-8"` to `open()`?',
+    options: [
+      'It is required syntax',
+      'Before Python 3.15 the default is the computer\'s locale encoding, e.g. cp1254 on Turkish Windows',
+      'It makes reading faster',
+      'UTF-8 is the only encoding Python supports',
+    ],
+    answer: 1,
+    explanation: 'Without it, the same program reads files differently on different computers. C# defaults to UTF-8.',
+  },
+  {
+    question: 'What do `using` (C#) and `with` (Python) guarantee?',
+    options: [
+      'The file is read completely',
+      'The resource is released at the end of the block, even if an exception occurs',
+      'The file is created if it doesn\'t exist',
+      'The code runs faster',
+    ],
+    answer: 1,
+    explanation: 'They call `Dispose()` / `__exit__` on every exit from the block, including exceptions.',
+  },
+  {
+    question: 'A program opens `data/grades.txt` and gets "file not found", but the file exists next to the source code. What is the most likely cause?',
+    options: [
+      'The file is too large',
+      'The working directory is a different folder',
+      'The encoding is wrong',
+      'Relative paths are not allowed',
+    ],
+    answer: 1,
+    explanation: 'Relative paths are resolved from where the program runs, not from where the source file is. Print the full path to check.',
+  },
+  {
+    question: 'Which call appends a line to a file instead of replacing it?',
+    options: [
+      'C# `File.WriteAllText`, Python `open(p, "w")`',
+      'C# `File.AppendAllText`, Python `open(p, "a")`',
+      'C# `File.ReadAllText`, Python `open(p, "r")`',
+      'C# `File.Create`, Python `open(p, "x")`',
+    ],
+    answer: 1,
+    explanation: '`"w"` and `WriteAllText` empty the file first; `"a"` and `AppendAllText` add to the end.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Read all text', '`File.ReadAllText(p)`', '`Path(p).read_text(encoding="utf-8")`'],
+    ['Read lines', '`File.ReadAllLines(p)`', '`Path(p).read_text(…).splitlines()`'],
+    ['Write text', '`File.WriteAllText(p, s)`', '`Path(p).write_text(s, encoding="utf-8")`'],
+    ['Append', '`File.AppendAllText(p, s)`', '`open(p, "a", encoding="utf-8")`'],
+    ['Line by line', '`using var r = new StreamReader(p);`', '`with open(p, encoding="utf-8") as f: for line in f:`'],
+    ['Combine paths', '`Path.Combine("data", "a.txt")`', '`Path("data") / "a.txt"`'],
+    ['Name / extension', '`Path.GetFileName(p)`, `GetExtension(p)`', '`p.name`, `p.suffix`'],
+    ['Exists?', '`File.Exists(p)`', '`p.exists()`'],
+    ['Create folder', '`Directory.CreateDirectory(d)`', '`d.mkdir(parents=True, exist_ok=True)`'],
+    ['List files', '`Directory.GetFiles(d, "*.txt")`', '`d.glob("*.txt")`'],
+    ['Cleanup', '`using (…) { }`, `IDisposable`', '`with …:`, `__enter__` / `__exit__`'],
+    ['JSON', '`JsonSerializer.Serialize(x)`', '`json.dumps(asdict(x))`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "My program can't find `data/grades.txt`. Explain what the working directory is
+  and three ways to find out where my program is looking — without changing my
+  code."
+- "Show me how to read a CSV file with numbers like `85.5` safely in C# and
+  Python on a computer set to Turkish, and explain what could go wrong."
+
+<Note type="warning" title="Verify it yourself">
+  AI-generated file code often skips `using` / `with`, leaves out
+  `encoding="utf-8"`, parses numbers with the current culture, or hard-codes a
+  path like `C:\Users\…`. Run it on a file with Turkish letters and a decimal
+  number, from a different working directory.
+</Note>

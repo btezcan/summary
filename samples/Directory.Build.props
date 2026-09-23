@@ -9,5 +9,9 @@
     <LangVersion>12</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- File-based apps (dotnet run file.cs) default to native AOT, which adds
+         trimming/AOT warnings (IL2026, IL3050) that a normal console project
+         never shows. Samples should behave like a normal project. -->
+    <PublishAot>false</PublishAot>
   </PropertyGroup>
 </Project>
