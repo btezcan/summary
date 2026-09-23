@@ -1,0 +1,4 @@
+True
+5
+<class 'str'>
+True

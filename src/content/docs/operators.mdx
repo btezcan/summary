@@ -1,5 +1,297 @@
 ---
-title: "Operators"
+title: Operators
+description: Division, modulo on negative numbers, increment, short-circuit logic, equality, precedence and null defaults — where C# and Python agree and where they don't.
 ---
 
-This chapter is being written.
+import { Pair, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- **Division differs.** In C#, `/` on two integers truncates (`7 / 2` is `3`).
+  In Python, `/` always gives a `float` (`3.5`) and `//` is integer division.
+- **Negative numbers differ.** C# rounds integer division toward zero and `%`
+  takes the sign of the dividend (`-7 % 3` is `-1`). Python floors and `%` takes
+  the sign of the divisor (`-7 % 3` is `2`).
+- **Python has no `++` or `--`.** Write `i += 1`. `++i` is legal Python and does
+  nothing.
+- `&&` / `||` / `!` (C#) and `and` / `or` / `not` (Python) both **short-circuit**.
+  Python's `and` / `or` return one of their operands, which makes `x or default`
+  replace `0` and `""` too — unlike C#'s `??`.
+- When precedence isn't obvious, **add parentheses**. Both languages evaluate
+  `2 + 3 * 4` as `14`, but they differ elsewhere (`**`, chained comparisons).
+
+## Concept
+
+### Arithmetic
+
+`+`, `-` and `*` work the same way in both languages. Division is where they part
+ways. C# picks the operation from the operand types: two `int`s give integer
+division; if either side is a `double`, you get floating-point division. Python
+has two operators instead, so you choose explicitly: `/` is true division,
+`//` is floor division.
+
+With negative numbers, the two languages round in different directions. C#
+truncates toward zero (`-3.5` becomes `-3`); Python floors toward minus infinity
+(`-3.5` becomes `-4`). Each language chose `%` so that
+`(a / b) * b + a % b == a` stays true for its own division — which is why the
+remainders differ too.
+
+<Pair id="operators/division-modulo">
+  The first three lines agree. The last two don't: C# gives `-3` and `-1`,
+  Python gives `-4` and `2`. Python's rule is handy for "wrap-around" math such
+  as clock arithmetic, where you want a result between `0` and `n - 1`.
+</Pair>
+
+**Power** is `**` in Python and `Math.Pow` in C#. In both languages `^` is
+bitwise XOR, not power — a classic trap.
+
+### Increment and decrement
+
+C# has `++` and `--` in two forms. **Postfix** `i++` uses the old value, then adds
+one. **Prefix** `++i` adds one, then uses the new value. Python has neither:
+`i++` is a `SyntaxError`, and `++i` is two unary plus signs, so it quietly
+changes nothing.
+
+<Pair id="operators/increment">
+  C#'s `i++` printed `5` (the old value) but still changed `i` to `6`. In
+  Python, `print(++i)` printed `6` because `i` was already 6 — the `++` did
+  nothing.
+</Pair>
+
+### Comparison and equality
+
+`<`, `>`, `<=`, `>=`, `==` and `!=` exist in both languages. For strings, C#'s
+`==` and Python's `==` both compare **content**. To ask whether two variables
+refer to the **same object**, C# uses `ReferenceEquals`, Python uses `is`.
+
+<Pair id="operators/equality">
+  The two strings have equal content but are different objects. Use `==` for
+  values. In Python, use `is` only with `None` (`x is None`); never with
+  numbers or strings.
+</Pair>
+
+Python can **chain** comparisons: `0 <= x < 10` means `0 <= x and x < 10`. In C#,
+`0 <= x < 10` does not compile; write `&&`, or use a relational pattern
+(`x is >= 0 and < 10`).
+
+<Pair id="operators/chained" />
+
+### Logical operators and short-circuiting
+
+| C# | Python | Meaning |
+|---|---|---|
+| `a && b` | `a and b` | both |
+| `a \|\| b` | `a or b` | either |
+| `!a` | `not a` | negation |
+
+Both languages **short-circuit**: if the left side already decides the result,
+the right side is never evaluated. That makes guards like "the list is not
+empty *and* its first element is big" safe.
+
+<Pair id="operators/short-circuit">
+  With an empty list the right side (`scores[0]`) would crash, but it never runs.
+  Python lets you write `if scores` because an empty list counts as false.
+</Pair>
+
+C# also has `&` and `|` on `bool`s. They compute the same answer but **always
+evaluate both sides** — see the mistake below.
+
+### Defaults for missing values
+
+C#'s **null-coalescing** operator `a ?? b` gives `b` only when `a` is `null`.
+Python has no such operator. The common substitute, `a or b`, gives `b` whenever
+`a` is **falsy**: `None`, but also `0`, `0.0`, `""`, `[]`.
+
+<Pair id="operators/null-or">
+  The first line agrees. The empty string and the zero are real values that C#
+  keeps and Python replaces. Chapter 11 covers `null` and `None` in depth.
+</Pair>
+
+### The conditional expression
+
+<Pair id="operators/conditional">
+  Same idea, different order: C# puts the condition first (`c ? a : b`), Python
+  in the middle (`a if c else b`).
+</Pair>
+
+### Precedence
+
+Both languages follow the usual math rules: `*` before `+`, left to right for
+operators of the same level. The full tables differ in the details.
+
+<Compare
+  caption="Operator precedence, highest first (simplified)"
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['1', 'member access, calls, `a[i]`, `x++`', 'member access, calls, `a[i]`'],
+    ['2', 'unary `-x` `!x` `~x` `++x`, casts', '`**` (power, right to left)'],
+    ['3', '`*` `/` `%`', 'unary `-x` `~x`'],
+    ['4', '`+` `-`', '`*` `/` `//` `%`'],
+    ['5', '`<<` `>>`', '`+` `-`'],
+    ['6', '`<` `>` `<=` `>=` `is` `as`', '`<<` `>>`'],
+    ['7', '`==` `!=`', '`&`, then `^`, then `|`'],
+    ['8', '`&`, then `^`, then `|`', 'comparisons, `in`, `is` (chainable)'],
+    ['9', '`&&`', '`not`'],
+    ['10', '`||`', '`and`'],
+    ['11', '`??`', '`or`'],
+    ['12', '`c ? a : b`', '`a if c else b`'],
+    ['13', 'assignment `=` `+=`, lambdas', 'lambda, `:=`'],
+  ]}
+/>
+
+<Pair id="operators/precedence">
+  `2 ** 3 ** 2` is `2 ** 9` because `**` groups right to left. `-2 ** 2` is `-4`
+  because `**` binds tighter than the minus sign. If you have to think about it,
+  your reader will too: add parentheses.
+</Pair>
+
+### Type tests
+
+The operators for "what type is this?" are covered properly with classes
+(chapter 8) and inheritance (chapter 10). A first look:
+
+<Pair id="operators/type-tests">
+  `is` (C#) and `isinstance` (Python) accept subclasses; comparing `GetType()` /
+  `type()` exactly does not. `as` returns `null` instead of throwing when the
+  type doesn't match. `nameof` gives a variable's name as a string, which keeps
+  error messages correct after a rename.
+</Pair>
+
+<Note type="tip" title="Bitwise operators">
+  `&`, `|`, `^`, `~`, `<<` and `>>` are spelled the same in both languages and
+  give the same results for small non-negative numbers. Details, flags and
+  negative numbers are in the appendix.
+</Note>
+
+<Pair id="operators/bitwise" />
+
+## Common Mistakes
+
+<Mistake lang="cs" title="An average computed with integer division" wrong="operators/m-int-average" right="operators/m-int-average-fixed">
+  `sum / grades.Length` divides two `int`s, so the fraction is lost *before* the
+  result is stored in a `double`. Cast one side first. The Python translation of
+  this bug is using `//` where you meant `/`.
+</Mistake>
+
+<Mistake lang="cs" title="& instead of && in a guard" wrong="operators/m-no-short-circuit" right="operators/m-no-short-circuit-fixed">
+  `&` evaluates both sides, so `scores[0]` runs even though the array is empty.
+  Use `&&` for conditions.
+</Mistake>
+
+<Mistake lang="cs" title="= instead of == in a condition" wrong="operators/m-assign-in-if" right="operators/m-assign-in-if-fixed">
+  In C, `if (x = 5)` compiles and is always true. C# requires a `bool` condition,
+  so the compiler catches the typo. Python rejects `if x = 5:` as a syntax error.
+</Mistake>
+
+<Mistake lang="py" title="Expecting ++ to increment" wrong="operators/m-plus-plus" right="operators/m-plus-plus-fixed">
+  `++count` is legal Python — it is `+(+count)` — and the result is thrown
+  away. No error, no increment.
+</Mistake>
+
+<Mistake lang="py" title="x or default when 0 is a valid value" wrong="operators/m-or-default" right="operators/m-or-default-fixed">
+  `requested or 10` treats `0` as missing. Test for `None` explicitly when zero,
+  an empty string or an empty list are legitimate values.
+</Mistake>
+
+<Mistake lang="py" title="is instead of ==" wrong="operators/m-is-literal" right="operators/m-is-literal-fixed">
+  It happens to print `five` here, because CPython reuses small integer objects —
+  but that is an implementation detail, and Python warns about it. `is` asks
+  "same object?"; `==` asks "same value?".
+</Mistake>
+
+## Predict the Output
+
+<Predict id="operators/p-negative">
+  C# truncates `-3.5` toward zero to `-3`, and the remainder keeps the dividend's
+  sign: `-1`. Python floors to `-4`, and the remainder keeps the divisor's
+  sign: `1`. Both satisfy `quotient * 2 + remainder == -7`.
+</Predict>
+
+<Predict id="operators/p-concat">
+  C# evaluates left to right: `1 + 2` is `3`, then `3 + "3"` is the string `"33"`,
+  and every later `+` appends: `"3345"`. Python refuses to add a number and a
+  string at all — and mypy reports it before the program runs.
+</Predict>
+
+<Predict id="operators/p-chained" lang="py">
+  Each chain means "every neighboring pair is true": `5 > 3 < 4 > 10` is
+  `5 > 3 and 3 < 4 and 4 > 10`, and the last part is false. In C#, `3 > 2 > 1`
+  doesn't compile: `3 > 2` is a `bool`, and a `bool` can't be compared with `1`.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'What is `7 / 2` in C#, and `7 / 2` in Python?',
+    options: ['`3` and `3.5`', '`3.5` and `3.5`', '`3` and `3`', '`3.5` and `3`'],
+    answer: 0,
+    explanation: 'C# `/` on two `int`s is integer division. Python `/` always returns a `float`; `7 // 2` would give `3`.',
+  },
+  {
+    question: 'What is `-7 % 3` in C#, and in Python?',
+    options: ['`-1` and `-1`', '`2` and `2`', '`-1` and `2`', '`2` and `-1`'],
+    answer: 2,
+    explanation: 'C#\'s remainder takes the sign of the dividend (`-7`); Python\'s takes the sign of the divisor (`3`).',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'operators/m-plus-plus',
+    lang: 'py',
+    options: ['`6`', '`5`', 'A `SyntaxError`', '`++5`'],
+    answer: 1,
+    explanation: '`++count` is two unary plus operators. It computes `5` and discards it; `count` never changes.',
+  },
+  {
+    question: 'Which C# expression computes 2 to the power of 10?',
+    options: ['`2 ^ 10`', '`2 ** 10`', '`Math.Pow(2, 10)`', '`2 << 10`'],
+    answer: 2,
+    explanation: '`^` is XOR (`2 ^ 10` is `8`), `**` does not exist in C#, and `2 << 10` shifts left, giving `2048`.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'operators/q-or',
+    lang: 'py',
+    options: ['`0`', '`10`', '`True`', '`None`'],
+    answer: 1,
+    explanation: '`0` is falsy, so `or` moves on and returns `10`. C#\'s `count ?? 10` would keep `0`, because `0` is not `null`.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Integer division', '`7 / 2` (both `int`)', '`7 // 2`'],
+    ['True division', '`7 / 2.0`, `(double)a / b`', '`7 / 2`'],
+    ['Remainder', '`a % b` (sign of `a`)', '`a % b` (sign of `b`)'],
+    ['Power', '`Math.Pow(a, b)`', '`a ** b`'],
+    ['Add one', '`i++`, `++i`, `i += 1`', '`i += 1`'],
+    ['And, or, not', '`&&`, `||`, `!`', '`and`, `or`, `not`'],
+    ['Same value', '`a == b`', '`a == b`'],
+    ['Same object', '`ReferenceEquals(a, b)`', '`a is b`'],
+    ['Range check', '`0 <= x && x < 10`', '`0 <= x < 10`'],
+    ['Conditional', '`c ? a : b`', '`a if c else b`'],
+    ['Default if missing', '`a ?? b` (only `null`)', '`b if a is None else a`'],
+    ['Type test', '`x is string`', '`isinstance(x, str)`'],
+    ['Bitwise', '`& | ^ ~ << >>`', '`& | ^ ~ << >>`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Give me ten C# expressions with `/`, `%`, `++` and `??`, and the Python
+  translation of each. For every pair, ask me whether the results match before
+  telling me."
+- "Explain operator precedence in `a + b * c ** d` for Python, and the closest C#
+  equivalent, step by step."
+
+<Note type="warning" title="Verify it yourself">
+  Translations between the languages break most often on operators: an AI may
+  turn C#'s `a / b` into Python's `a / b` (wrong for integers), `x % n` for
+  negative `x`, or `a ?? b` into `a or b`. Run both versions with a negative
+  number, a zero and an empty string before trusting a translation.
+</Note>

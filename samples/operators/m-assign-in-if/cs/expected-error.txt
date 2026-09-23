@@ -1,0 +1,1 @@
+Program.cs(2,5): error CS0029: Cannot implicitly convert type 'int' to 'bool'
