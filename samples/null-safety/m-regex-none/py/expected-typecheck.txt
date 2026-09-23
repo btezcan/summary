@@ -1,0 +1,1 @@
+main.py:4: error: Item "None" of "Match[str] | None" has no attribute "group"  [union-attr]

@@ -1,5 +1,253 @@
 ---
-title: "Null Safety"
+title: Null Safety
+description: null and None, NullReferenceException and AttributeError, nullable reference types and Optional hints, the null operators and safe patterns — in C# and Python side by side.
 ---
 
-This chapter is being written.
+import { Pair, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- `null` (C#) and `None` (Python) mean "no object". Using one as if it were an
+  object crashes: `NullReferenceException` / `AttributeError` or `TypeError`.
+- C#'s **nullable reference types** mark which variables may be `null`
+  (`string?`) and the compiler **warns** before the program runs. Python's
+  `str | None` hint does the same job for a **type checker** such as mypy;
+  Python itself never warns.
+- C# has operators for missing values: `?.`, `??`, `??=`. Python has none;
+  write `x if x is not None else default`.
+- Test with `is null` / `is not null` (C#) and `is None` / `is not None`
+  (Python). After the test, both the compiler and mypy know the value isn't null.
+- Don't silence warnings with `!` (C#) — handle the `null` case instead.
+
+## Concept
+
+### What null and None mean
+
+A variable of a reference type in C# can hold a reference to an object, or
+`null`: no object at all. In Python, any name can refer to the special object
+`None`. Both mean "there's nothing here": a search found nothing, an optional
+value wasn't given, input ended.
+
+Calling a method or reading a property on nothing is an error:
+
+<Pair id="null-safety/crash">
+  C# raises `NullReferenceException`, and the compiler warned about the line
+  before it ran (CS8602). Python raises `AttributeError: 'NoneType' object has no
+  attribute 'upper'`; mypy reported it first. Read the message literally: the
+  value was `None` (`NoneType`), not the object you expected.
+</Pair>
+
+### Nullable reference types and Optional hints
+
+Since C# 8, a project can turn on **nullable reference types**, and new projects
+have them on by default (`<Nullable>enable</Nullable>`). Then `string` means
+"never null" and `string?` means "may be null", and the compiler tracks which
+is which. Python's hint `str | None` (older code: `Optional[str]`) states the
+same thing; mypy tracks it, the interpreter doesn't.
+
+<Pair id="null-safety/warnings">
+  The same bug, caught the same way — before running. C# warns twice: CS8600
+  when a possibly-null value is stored in a non-nullable `string`, and CS8602
+  when it's used. mypy reports the assignment. Both programs still ran and
+  crashed, because warnings don't stop a build or a Python script. **Treat these
+  warnings as errors.**
+</Pair>
+
+### Testing for null
+
+<Pair id="null-safety/narrowing">
+  Inside the `else` branch, both the C# compiler and mypy know `nick` can't be
+  null, so calling `ToUpper()` / `upper()` produces no warning. This is called
+  **narrowing**. Use `is null` / `is None`; `== None` works in Python but is
+  considered poor style, because a class can redefine `==`.
+</Pair>
+
+### The null operators (C#) and their Python idioms
+
+<Compare
+  caption="Handling a missing value"
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Member if not null', '`s?.Length` (null if `s` is null)', '`len(s) if s is not None else None`'],
+    ['Default if null', '`s ?? "guest"`', '`s if s is not None else "guest"`'],
+    ['Assign if null', '`s ??= "guest";`', '`if s is None: s = "guest"`'],
+    ['"Trust me, not null"', '`s!` (no check at runtime!)', '— (mypy: `assert s is not None`)'],
+    ['Default if falsy', '—', '`s or "guest"` (also replaces `""`, `0`)'],
+  ]}
+/>
+
+<Pair id="null-safety/operators">
+  `?.` gives `null` instead of crashing, and `??` supplies the fallback; together
+  they handle a missing value in one expression. Python spells the same logic out
+  with a conditional expression and an `if`.
+</Pair>
+
+<Pair id="null-safety/safe-navigation">
+  `s.Advisor?.Name` follows a chain of references and stops at the first `null`.
+  Python has no `?.`; take one step at a time. (`advisor.name if advisor` uses
+  truthiness — fine here, because a `Student` object is always truthy.)
+</Pair>
+
+### Guard clauses
+
+A method that must not receive `null` should say so at the start and fail
+immediately, with a clear message, instead of crashing somewhere deeper.
+
+<Pair id="null-safety/guard">
+  `ArgumentNullException.ThrowIfNull` names the parameter in the message. The
+  `null!` in the C# call deliberately passes `null` past the compiler for this
+  demonstration. Python raises `ValueError` (or `TypeError`) with its own
+  message.
+</Pair>
+
+## Examples
+
+### Searching a list
+
+<Pair id="null-safety/first-or-default">
+  `FirstOrDefault` returns `null` (the default for reference types) when nothing
+  matches. Python's `next(..., None)` does the same with a generator. Both come
+  back in chapter 14.
+</Pair>
+
+### The end of the input
+
+<Pair id="null-safety/end-of-input">
+  This program received no input at all. C#'s `ReadLine` signals the end with
+  `null` — the reason it returns `string?`. Python's `input()` raises `EOFError`
+  instead, so the code converts that into `None`.
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Silencing the compiler with !" wrong="null-safety/m-bang" right="null-safety/m-bang-fixed">
+  `!` removes the warning but adds no check: the program crashes exactly as
+  before, now without any warning to point at the problem. Handle the `null`
+  case instead.
+</Mistake>
+
+<Mistake lang="cs" title="Parsing ReadLine directly" wrong="null-safety/m-parse-null" right="null-safety/m-parse-null-fixed">
+  At the end of the input `ReadLine()` returns `null`, and `int.Parse(null)`
+  throws. The compiler warned (CS8604). `TryParse` handles both `null` and bad
+  text.
+</Mistake>
+
+<Mistake lang="py" title="Using a regex match without checking it" wrong="null-safety/m-regex-none" right="null-safety/m-regex-none-fixed">
+  `re.match` returns `None` when the text doesn't match. mypy's message says
+  exactly that: the result is `Match[str] | None`.
+</Mistake>
+
+<Mistake lang="py" title="Arithmetic on dict.get()" wrong="null-safety/m-get-none" right="null-safety/m-get-none-fixed">
+  `get` returns `None` for a missing key, and `None + 1` fails. Check for `None`,
+  or pass a default: `ages.get("Zeynep", 0)`.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="null-safety/p-nullable-int">
+  C# **lifts** arithmetic to nullable values: `null + 1` is `null`, which prints
+  as nothing, and a comparison with `null` is `false`. Python has no such rule:
+  `None + 1` is a `TypeError`.
+</Predict>
+
+<Predict id="null-safety/p-coalesce-chain">
+  `??` skips only `null`, so C# stops at the empty string `b`. `or` skips every
+  **falsy** value, so Python skips `""` too and returns `"x"`.
+</Predict>
+
+<Predict id="null-safety/p-none-type" lang="py">
+  There is exactly one `None` object, of type `NoneType`, so `==` and `is` agree.
+  `None` is falsy, which is why `if value:` treats it like `0` and `""`.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'In a C# project with nullable reference types enabled, what does `string?` mean?',
+    options: [
+      'The string may be empty',
+      'The variable may hold `null`',
+      'The string is optional in method calls',
+      'The string is immutable',
+    ],
+    answer: 1,
+    explanation: 'The `?` marks a reference that may be `null`; plain `string` promises it never is. The compiler warns when you use a `string?` without checking it.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'null-safety/q-get',
+    lang: 'py',
+    options: ['A `KeyError`', '`None` then `0`', '`0` then `0`', '`None` then `None`'],
+    answer: 1,
+    explanation: '`dict.get` returns `None` for a missing key, or the default you pass. `ages["Can"]` would raise `KeyError`.',
+  },
+  {
+    question: 'Which is the Python equivalent of C#\'s `name ?? "guest"`?',
+    options: [
+      '`name or "guest"`',
+      '`name if name is not None else "guest"`',
+      '`name ?? "guest"`',
+      '`name.get("guest")`',
+    ],
+    answer: 1,
+    explanation: '`or` also replaces an empty string (and `0`, `[]`). Only the explicit `is not None` test matches `??` exactly.',
+  },
+  {
+    question: 'What does the null-forgiving operator `!` do at runtime in C#?',
+    options: [
+      'Throws if the value is null',
+      'Replaces null with a default value',
+      'Nothing: it only silences the compiler warning',
+      'Converts the value to a non-nullable type',
+    ],
+    answer: 2,
+    explanation: '`!` changes only what the compiler thinks. If the value is `null`, the program still crashes later — just without a warning.',
+  },
+  {
+    question: 'Does Python itself warn you before running code that may use `None` incorrectly?',
+    options: [
+      'Yes, it checks type hints before running',
+      'No — only a type checker such as mypy does',
+      'Yes, but only inside functions',
+      'Only for `str | None` hints',
+    ],
+    answer: 1,
+    explanation: 'Python ignores type hints at runtime. mypy (or pyright) reads them and reports possible `None` misuse, like the C# compiler\'s nullable warnings.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['No object', '`null`', '`None`'],
+    ['May be missing', '`string?`, `int?`', '`str | None`, `int | None`'],
+    ['Check', '`x is null`, `x is not null`', '`x is None`, `x is not None`'],
+    ['Default', '`x ?? d`', '`x if x is not None else d`'],
+    ['Member or null', '`x?.Length`', '`len(x) if x is not None else None`'],
+    ['Assign if missing', '`x ??= d;`', '`if x is None: x = d`'],
+    ['Guard a parameter', '`ArgumentNullException.ThrowIfNull(x);`', '`if x is None: raise ValueError(...)`'],
+    ['Search, maybe nothing', '`list.FirstOrDefault(...)`', '`next((…), None)`'],
+    ['Dictionary, maybe missing', '`d.TryGetValue(k, out var v)`', '`d.get(k)` → `None`'],
+    ['Crash message', '`NullReferenceException`', '`AttributeError: \'NoneType\'…`'],
+    ['Checked by', 'the compiler (warnings)', 'mypy / pyright'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Here are the C# compiler warnings for my code (CS8600, CS8602, …). Explain
+  each one and what could actually go wrong at runtime, without fixing the code."
+- "Show me three ways a Python function can end up returning `None` by accident,
+  and how mypy reports each."
+
+<Note type="warning" title="Verify it yourself">
+  AI-generated C# often silences nullable warnings with `!` or `#nullable
+  disable`, and AI-generated Python often skips the `None` check after `get`,
+  `re.match` or `next`. Search AI code for `!` and for those calls, and run it
+  with missing input.
+</Note>
