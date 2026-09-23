@@ -1,0 +1,1 @@
+Program.cs(2,1): error CS8852: Init-only property or indexer 'Course.Credits' can only be assigned in an object initializer, or on 'this' or 'base' in an instance constructor or an 'init' accessor.

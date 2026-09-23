@@ -268,6 +268,10 @@ async function verifyPython({ opts, dir, result, fail }) {
 		const tb = pythonTraceback(stderr);
 		if (main.code === 0 || !tb) {
 			fail('Expected an uncaught exception, but the program finished normally.' + (stderr ? '\n' + indent(stderr) : ''));
+		} else if (/File "(\/|[A-Za-z]:\\|<)/.test(tb)) {
+			// Frames inside the standard library or generated code have machine-specific
+			// paths and version-specific line numbers: the expected file wouldn't match in CI.
+			fail('The traceback leaves the sample\'s own files (standard library or generated code), so it is not portable. Catch the exception and print it instead:\n' + indent(tb));
 		} else {
 			compareFile(result, fail, dir, 'expected-error.txt', tb + '\n');
 		}

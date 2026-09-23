@@ -1,0 +1,1 @@
+Program.cs(2,1): error CS1612: Cannot modify the return value of 'List<Point>.this[int]' because it is not a variable

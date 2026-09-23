@@ -1,0 +1,1 @@
+Program.cs(2,9): error CS8858: The receiver type 'Course' is not a valid record type and is not a struct type.

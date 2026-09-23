@@ -1,0 +1,4 @@
+True
+Course { Code = CS101, Title = Intro, Credits = 4 }
+5
+4

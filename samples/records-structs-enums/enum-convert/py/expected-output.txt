@@ -1,0 +1,3 @@
+7
+Day.SUNDAY
+42 is not a valid Day

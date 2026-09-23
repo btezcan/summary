@@ -1,5 +1,241 @@
 ---
-title: "Records, Structs, Enums"
+title: Records, Structs, Enums
+description: Records and dataclasses for data, structs and value semantics, and enums — when to use each in C# and Python.
 ---
 
-This chapter is being written.
+import { Pair, Sample, Predict, Quiz, Mistake, Note, Compare } from '~/components';
+
+## Summary
+
+- A **record** (C#) and a **dataclass** (Python) are classes for **data**: the
+  language writes the constructor, equality and text output for you. Two records
+  with the same data are **equal**.
+- To "change" an immutable record, create a copy: `c with { Credits = 5 }` (C#),
+  `replace(c, credits=5)` (Python).
+- A C# **struct** is a **value type**: assignment and method calls **copy** it.
+  Python has no user-defined value types; every object is shared by reference.
+- An **enum** names a fixed set of values. A C# enum is an `int` underneath;
+  a Python `Enum` member is not an `int` unless you use `IntEnum`.
+
+## Concept
+
+### Records and dataclasses
+
+Most small classes just hold data: a course, a point, a grade. Writing their
+constructor, equality, hashing and `ToString` / `__repr__` by hand is repetitive
+and error-prone. **Records** (C#) and **dataclasses** (Python) generate all of
+it from a list of fields.
+
+<Pair id="records-structs-enums/record-dataclass">
+  Both compare by **value**, print their fields, and make modified copies without
+  touching the original. `record Course(...)` is immutable by default;
+  `@dataclass(frozen=True)` makes the Python version immutable too (without
+  `frozen`, a dataclass is mutable).
+</Pair>
+
+<Pair id="records-structs-enums/class-vs-record">
+  The only difference between each pair is the kind of type. A plain class
+  compares by **identity** — are these the same object? — in both languages. A
+  record or dataclass compares by **value**.
+</Pair>
+
+<Pair id="records-structs-enums/immutable">
+  Both refuse the change, at different times. C# rejects it at **compile** time
+  (CS8852). Python raises `FrozenInstanceError` at **runtime** — and mypy
+  reports the line before the program runs.
+</Pair>
+
+Python also has **named tuples**: tuples whose items have names. They're handy
+for small results returned from a function.
+
+<Sample id="records-structs-enums/named-tuple" lang="py" />
+
+### Structs and value semantics (only in C#)
+
+A **struct** is a user-defined **value type**, like `int` or `double`. Assigning
+a struct copies all its data; passing it to a method passes a copy. Use structs
+for small values that behave like numbers — a point, a color, a money amount —
+and make them immutable.
+
+<Pair id="records-structs-enums/struct-copy">
+  The code is the same shape and the outputs differ. C#'s `p2 = p1` copied the
+  struct, so changing `p2` left `p1` alone. Python has no structs: `p2 = p1` is a
+  second name for the same object. A frozen dataclass gives Python the
+  **immutability** of a good struct, but not the copying.
+</Pair>
+
+A **readonly record struct** combines both ideas: a value type with record-style
+equality, printing and `with`.
+
+<Sample id="records-structs-enums/record-struct" lang="cs" />
+
+<Note type="tip" title="Mutable structs are a trap">
+  Because structs are copied, changing a field of a struct stored in a list or
+  returned from a property changes a **copy**. The compiler blocks the most
+  common case (see Common Mistakes). Keep structs small and immutable.
+</Note>
+
+### Enums
+
+An **enum** gives names to a fixed set of related values, so the code says
+`Day.Sunday` instead of a magic number `6`.
+
+<Pair id="records-structs-enums/enums">
+  C# numbers the members from `0`, so `Wednesday` is `2`; the Python class
+  assigns values explicitly (`auto()` would start at `1`). Printing shows the
+  name in C# and `Day.FRIDAY` in Python; `.name` and `.value` give the parts.
+</Pair>
+
+<Pair id="records-structs-enums/enum-convert">
+  C# lets you cast **any** integer to an enum — `(Day)42` is legal and simply has
+  no name — so check with `Enum.IsDefined` when the number comes from outside.
+  Python refuses: `Day(42)` raises `ValueError`.
+</Pair>
+
+<Pair id="records-structs-enums/enum-match">
+  Enums and `switch` / `match` go together. Python can loop over all members of
+  an enum (`for s in Status`); C# uses `Enum.GetValues<Status>()` for that.
+</Pair>
+
+**Flags** combine several enum values into one: "read and write".
+
+<Pair id="records-structs-enums/flags">
+  C#'s `[Flags]` enums need powers of two (`1, 2, 4`) so the values can be
+  combined with `|`. Python's `Flag` with `auto()` picks them for you, and `in`
+  tests membership.
+</Pair>
+
+### Choosing a type
+
+<Compare
+  caption="class, record, struct — and the Python counterparts"
+  headers={['', 'C# class', 'C# record', 'C# struct', 'Python class', 'Python dataclass']}
+  rows={[
+    ['Equality', 'identity', 'value', 'value', 'identity', 'value'],
+    ['Assignment', 'shares', 'shares', '**copies**', 'shares', 'shares'],
+    ['Mutable?', 'usually', 'no (by default)', 'avoid it', 'yes', 'unless `frozen=True`'],
+    ['Printing', 'type name', 'all fields', 'type name', 'address', 'all fields'],
+    ['Typical use', 'objects with behavior', 'data, results, messages', 'small values', 'objects with behavior', 'data, results, messages'],
+  ]}
+/>
+
+## Examples
+
+### Duplicate-free collections of records
+
+<Pair id="records-structs-enums/p-set-of-records">
+  Records and frozen dataclasses are **hashable** by value, so a set treats the
+  two identical courses as one. A set of plain class objects would keep all
+  three. (A mutable dataclass is not hashable at all: Python refuses to put it in
+  a set.)
+</Pair>
+
+## Common Mistakes
+
+<Mistake lang="cs" title="Changing a struct inside a list" wrong="records-structs-enums/m-struct-in-list" right="records-structs-enums/m-struct-in-list-fixed">
+  `points[0]` returns a **copy** of the struct, so setting its `X` would change
+  a temporary and be lost. The compiler refuses. Copy, change, and store back —
+  or better, use an immutable `readonly record struct`.
+</Mistake>
+
+<Mistake lang="cs" title="Using with on a class" wrong="records-structs-enums/m-with-class" right="records-structs-enums/m-with-class-fixed">
+  `with` works only on records and structs, because the compiler generates the
+  copying code for them. Make the type a record.
+</Mistake>
+
+<Mistake lang="py" title="A list as a dataclass default" wrong="records-structs-enums/m-mutable-field" right="records-structs-enums/m-mutable-field-fixed">
+  The same trap as mutable default arguments (chapter 6) — but here Python
+  catches it when the class is defined. `field(default_factory=list)` builds a
+  new list for every object.
+</Mistake>
+
+<Mistake lang="py" title="Comparing an Enum member with a number" wrong="records-structs-enums/m-enum-int" right="records-structs-enums/m-enum-int-fixed">
+  `Day.MONDAY == 1` is `False`: an `Enum` member is not its value. Compare with
+  the member, or use `.value`, or define the enum with `IntEnum` if it really
+  must behave like a number. In C#, `today == 1` wouldn't compile without a
+  cast.
+</Mistake>
+
+## Predict the Output
+
+<Predict id="records-structs-enums/p-pass-struct">
+  The C# method receives a **copy** of the struct and changes only that copy,
+  so `p.X` stays `1`. The Python function receives a reference to the same
+  object and changes it: `11`.
+</Predict>
+
+<Predict id="records-structs-enums/p-enum-default" lang="cs">
+  `default` for an enum is the value `0`, which is the first member here. That's
+  why many C# enums start with a `None = 0` or `Unknown = 0` member.
+</Predict>
+
+## Mini Quiz
+
+<Quiz questions={[
+  {
+    question: 'Two C# records have the same values. What does `a == b` return?',
+    options: ['`false`, they are different objects', '`true`, records compare by value', 'It doesn\'t compile', 'It depends on `GetHashCode`'],
+    answer: 1,
+    explanation: 'Records generate value-based equality. A Python dataclass does the same; plain classes in both languages compare by identity.',
+  },
+  {
+    question: 'Which Python code makes a changed copy of a frozen dataclass `c`?',
+    options: ['`c.credits = 5`', '`c with { credits = 5 }`', '`replace(c, credits=5)`', '`c.copy(credits=5)`'],
+    answer: 2,
+    explanation: '`dataclasses.replace` is the counterpart of C#\'s `with` expression. Assigning to a frozen dataclass raises `FrozenInstanceError`.',
+  },
+  {
+    question: 'What does this Python program print?',
+    sample: 'records-structs-enums/q-auto',
+    lang: 'py',
+    options: ['`0 1`', '`1 2`', '`RED GREEN`', '`Color.RED Color.GREEN`'],
+    answer: 1,
+    explanation: '`auto()` numbers `Enum` members from 1. C# enums start at 0.',
+  },
+  {
+    question: 'In C#, `var p2 = p1;` where `Point` is a **struct**. You change `p2.X`. What happens to `p1`?',
+    options: ['It changes too', 'Nothing: `p2` is a copy', 'It becomes `null`', 'It doesn\'t compile'],
+    answer: 1,
+    explanation: 'Structs are value types, so assignment copies them. With a class — or any Python object — both names would refer to the same object.',
+  },
+  {
+    question: 'What happens in C# with `Day d = (Day)42;` when no member has the value 42?',
+    options: ['A compile error', 'An exception', 'It works; `d` just has no name', '`d` becomes the first member'],
+    answer: 2,
+    explanation: 'A C# enum is an integer underneath, so any value of the underlying type is allowed. `Enum.IsDefined` checks for a named value. Python\'s `Day(42)` raises `ValueError`.',
+  },
+]} />
+
+## Cheat Sheet
+
+<Compare
+  headers={['', 'C#', 'Python']}
+  rows={[
+    ['Data type', '`record Course(string Code, int Credits);`', '`@dataclass` with typed fields'],
+    ['Immutable', 'records are by default', '`@dataclass(frozen=True)`'],
+    ['Changed copy', '`c with { Credits = 5 }`', '`replace(c, credits=5)`'],
+    ['Mutable list default', '—', '`field(default_factory=list)`'],
+    ['Value type', '`struct`, `readonly record struct`', '— (no value types)'],
+    ['Named tuple', 'tuple `(int X, int Y)`', '`class P(NamedTuple)`'],
+    ['Enum', '`enum Day { Monday, … }`', '`class Day(Enum): MONDAY = 1`'],
+    ['Number of a member', '`(int)Day.Monday`', '`Day.MONDAY.value`'],
+    ['Member from text', '`Enum.TryParse("Monday", out Day d)`', '`Day["MONDAY"]`'],
+    ['Member from number', '`(Day)1` (never fails)', '`Day(1)` (raises if unknown)'],
+    ['Flags', '`[Flags] enum P { Read = 1, Write = 2 }`', '`class P(Flag)` with `auto()`'],
+  ]}
+/>
+
+## Working with AI
+
+Good prompts for learning this topic:
+
+- "Here is a C# class that only holds data. Should it be a record, a struct or a
+  class? Explain the trade-offs, and show the Python dataclass equivalent."
+- "Explain the difference between value and reference semantics using a C#
+  struct and a Python dataclass. Then give me three predict-the-output questions."
+
+<Note type="warning" title="Verify it yourself">
+  AI tools often translate a C# struct into a Python dataclass and silently lose
+  the copy semantics: code that relied on copies now shares one object. When you
+  translate a struct, look for every assignment and method call that passes it.
+</Note>
