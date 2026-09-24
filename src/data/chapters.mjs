@@ -3,7 +3,7 @@
 // only change this file (and add its page).
 
 /**
- * @typedef {{ slug: string, label: string }} Chapter
+ * @typedef {{ slug: string, label: string, blurb?: string }} Chapter
  * @typedef {{ label: string, chapters: Chapter[] }} ChapterGroup
  */
 
@@ -12,39 +12,39 @@ export const chapterGroups = [
 	{
 		label: 'Basics',
 		chapters: [
-			{ slug: 'getting-started', label: 'Getting Started' },
-			{ slug: 'types', label: 'Types and Variables' },
-			{ slug: 'operators', label: 'Operators' },
-			{ slug: 'strings', label: 'Strings' },
-			{ slug: 'control-flow', label: 'Control Flow' },
-			{ slug: 'functions', label: 'Methods and Functions' },
-			{ slug: 'collections', label: 'Arrays and Collections' },
+			{ slug: 'getting-started', label: 'Getting Started', blurb: 'dotnet and python, project files, how code runs' },
+			{ slug: 'types', label: 'Types and Variables', blurb: 'static vs dynamic typing, overflow, conversions' },
+			{ slug: 'operators', label: 'Operators', blurb: '`/` and `//`, `%` on negatives, `??` vs `or`' },
+			{ slug: 'strings', label: 'Strings', blurb: 'interpolation, f-strings, formatting, the Turkish İ' },
+			{ slug: 'control-flow', label: 'Control Flow', blurb: 'if, switch expressions, match, loops' },
+			{ slug: 'functions', label: 'Methods and Functions', blurb: 'parameters, defaults, tuples, recursion' },
+			{ slug: 'collections', label: 'Arrays and Collections', blurb: 'List/list, Dictionary/dict, sets, queues, slicing' },
 		],
 	},
 	{
 		label: 'Objects',
 		chapters: [
-			{ slug: 'classes', label: 'Classes and Objects' },
-			{ slug: 'records-structs-enums', label: 'Records, Structs, Enums' },
-			{ slug: 'inheritance', label: 'Inheritance and Polymorphism' },
+			{ slug: 'classes', label: 'Classes and Objects', blurb: 'properties, constructors, static members, `__str__`' },
+			{ slug: 'records-structs-enums', label: 'Records, Structs, Enums', blurb: 'records vs dataclasses, value types, enums' },
+			{ slug: 'inheritance', label: 'Inheritance and Polymorphism', blurb: 'virtual/override, abstract classes, interfaces vs protocols' },
 		],
 	},
 	{
 		label: 'Modern Features',
 		chapters: [
-			{ slug: 'null-safety', label: 'Null Safety' },
-			{ slug: 'exceptions', label: 'Exceptions' },
-			{ slug: 'generics-lambdas', label: 'Generics and Lambdas' },
-			{ slug: 'querying-collections', label: 'Querying Collections' },
-			{ slug: 'files', label: 'Files and Cleanup' },
-			{ slug: 'async', label: 'async / await' },
+			{ slug: 'null-safety', label: 'Null Safety', blurb: 'nullable reference types, `None` and `Optional`' },
+			{ slug: 'exceptions', label: 'Exceptions', blurb: 'try/catch/except, raising, EAFP vs LBYL' },
+			{ slug: 'generics-lambdas', label: 'Generics and Lambdas', blurb: 'generics, type variables, delegates, closures' },
+			{ slug: 'querying-collections', label: 'Querying Collections', blurb: 'LINQ vs comprehensions and generators' },
+			{ slug: 'files', label: 'Files and Cleanup', blurb: 'reading and writing files, `using` and `with`, JSON' },
+			{ slug: 'async', label: 'async / await', blurb: 'Task and coroutines, WhenAll and gather' },
 		],
 	},
 	{
 		label: 'Tools & Practice',
 		chapters: [
-			{ slug: 'debugging-testing', label: 'Debugging and Testing' },
-			{ slug: 'learning-with-ai', label: 'Learning with AI' },
+			{ slug: 'debugging-testing', label: 'Debugging and Testing', blurb: 'compiler errors, debugger, xUnit and pytest' },
+			{ slug: 'learning-with-ai', label: 'Learning with AI', blurb: 'using AI as a tutor, verifying its code' },
 		],
 	},
 ];

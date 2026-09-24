@@ -8,3 +8,4 @@ export { default as Predict } from './Predict.astro';
 export { default as ProgressChecklist } from './ProgressChecklist.astro';
 export { default as Quiz } from './Quiz.astro';
 export { default as Sample } from './Sample.astro';
+export { default as TopicMap } from './TopicMap.astro';

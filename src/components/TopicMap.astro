@@ -1,0 +1,28 @@
+---
+// Home page topic map: the chapter groups from src/data/chapters.mjs, each
+// chapter with its number and a one-line summary.
+import { allChapters, chapterGroups } from '../data/chapters.mjs';
+import { inline, withBase } from './lib/inline';
+
+const numberOf = new Map(allChapters.map((c) => [c.slug, c.number]));
+---
+
+<nav class="cs-topics" aria-label="Topic map">
+	{
+		chapterGroups.map((group) => (
+			<section class="cs-topics__group">
+				<h3 class="cs-topics__title">{group.label}</h3>
+				<ol class="cs-topics__list">
+					{group.chapters.map((c) => (
+						<li>
+							<a href={withBase(c.slug)}>
+								<span class="cs-topics__number">{numberOf.get(c.slug)}.</span> {c.label}
+							</a>
+							{c.blurb && <span class="cs-topics__blurb" set:html={inline(c.blurb)} />}
+						</li>
+					))}
+				</ol>
+			</section>
+		))
+	}
+</nav>

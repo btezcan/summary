@@ -1,9 +1,59 @@
 ---
 title: C# & Python Side by Side
-description: A comparative reference guide to C# and Python for university students.
+description: A comparative review and reference guide to C# and Python for university students — every concept in both languages, with verified examples, exercises and quizzes.
 tableOfContents: false
 ---
 
-This site is a review and reference guide that teaches each concept in C# and
-Python side by side. It is not a first programming course. The home page content
-(how to use the guide, topic map, progress checklist) is added in a later step.
+import { Pair, ProgressChecklist, TopicMap } from '~/components';
+
+This is a review and reference guide that teaches each concept in **C# and
+Python side by side**: C# on the left, Python on the right. It is not a first
+programming course. Use it to review a topic before a lab or an exam, to look up
+syntax, and to understand *why* the two languages behave differently.
+
+<Pair id="operators/division-modulo">
+  The same five lines, two different answers. C#'s `/` on two integers
+  truncates toward zero; Python's `/` always gives a float, and `//` rounds
+  down. That's why `-7 % 3` is `-1` in C# and `2` in Python. Chapter 3 explains
+  it. Every example on this site was compiled and run; the outputs are real.
+</Pair>
+
+## How to use this guide
+
+- **Read the Summary first.** Every chapter starts with the few points you must
+  remember. If they're all familiar, jump to the exercises.
+- **Predict before you reveal.** Decide on your answer to each "Predict the
+  Output" exercise before opening it. A wrong guess teaches you more than
+  reading the answer.
+- **Run the code yourself, in both languages.** Change a value and predict the
+  new output. The chapter [Getting Started](/getting-started/) shows how.
+- **Type, don't copy.** Typing an example makes you notice every detail.
+- **Use the cheat sheet** for quick lookups, and print it before an exam:
+  [Cheat Sheet](/cheat-sheet/).
+
+## Why two languages
+
+C# is **statically typed** and **compiled**: the compiler checks types before the
+program runs. Python is **dynamically typed** and **interpreted**: names and
+types are checked while it runs. Seeing the same idea expressed both ways makes
+the idea itself clearer — what a type is, what a reference is, what an exception
+is — and shows which behavior belongs to the concept and which to one language.
+
+## Topic map
+
+<TopicMap />
+
+Optional extras: the [Appendices](/appendices/) (operator overloading, bitwise
+operators, what happens under the hood, dates, Git and more).
+
+## Your progress
+
+Tick the chapters you've reviewed. The ticks are stored only in this browser.
+
+<ProgressChecklist />
+
+## Learning with AI
+
+AI can write code; this site helps you understand, check and improve it. Read
+[Learning with AI](/learning-with-ai/) for prompts that make you learn and a
+checklist for verifying AI-generated code.

@@ -636,6 +636,53 @@
 	color: var(--cs-ink);
 }
 
+/* --- Topic map (home page) --------------------------------------------------- */
+
+.sl-markdown-content .cs-topics {
+	margin-top: var(--cs-gap);
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+	gap: 1rem 2rem;
+}
+
+.sl-markdown-content .cs-topics > * {
+	margin-top: 0;
+}
+
+.sl-markdown-content .cs-topics__title {
+	margin: 0;
+	padding-bottom: 0.3rem;
+	border-bottom: 1px solid var(--cs-line);
+	font-size: var(--sl-text-lg);
+}
+
+.sl-markdown-content .cs-topics__list {
+	list-style: none;
+	padding: 0;
+	margin: 0.5rem 0 0;
+}
+
+.sl-markdown-content .cs-topics__list > li {
+	margin-top: 0;
+	padding: 0.3rem 0;
+}
+
+.cs-topics__list a {
+	font-weight: 600;
+}
+
+.cs-topics__number {
+	font-family: var(--__sl-font-mono);
+	font-size: 0.85em;
+	color: var(--cs-muted);
+}
+
+.cs-topics__blurb {
+	display: block;
+	font-size: var(--sl-text-sm);
+	color: var(--cs-muted);
+}
+
 /* --- Compare ------------------------------------------------------------------ */
 
 .cs-compare--table {
