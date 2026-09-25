@@ -4,8 +4,7 @@ import starlight from '@astrojs/starlight';
 import { appendices, chapterGroups, extraPages } from './src/data/chapters.mjs';
 import remarkBaseLinks from './src/plugins/remark-base-links.mjs';
 
-// TODO: replace with the real GitHub repository once it exists.
-const REPO = 'USER/REPO-NAME';
+const REPO = 'btezcan/summary';
 
 // In CI (GitHub Pages) both values come from actions/configure-pages.
 // Locally the site is served from the root ("/").
