@@ -274,10 +274,13 @@ async function verifyPython({ opts, dir, work, result, fail }) {
 
 	if (opts.expect === 'test') {
 		// pytest is installed for the target version only; one run is enough.
+		// pytest stops truncating its summary when CI or BUILD_NUMBER is set
+		// (GitHub Actions sets CI), so drop both: the report must match locally.
+		const { CI: _ci, BUILD_NUMBER: _build, ...testEnv } = env;
 		const test = await run(
 			tools.python.exe,
 			['-m', 'pytest', '-q', '-p', 'no:cacheprovider', '--tb=short'],
-			{ cwd: work, env: { ...env, COLUMNS: '46' }, timeout: timeout * 3 }, // fits a <Pair> column
+			{ cwd: work, env: { ...testEnv, COLUMNS: '46' }, timeout: timeout * 3 }, // fits a <Pair> column
 		);
 		const reportText = normalizePaths(toLf(test.stdout), work)
 			.replace(/ in \d+(\.\d+)?s( \(\d+:\d+:\d+\))?/g, '')
